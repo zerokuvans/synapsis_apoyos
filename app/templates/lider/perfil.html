@@ -1,0 +1,508 @@
+{% extends "base.html" %}
+
+{% block title %}Mi Perfil - Synapsis Apoyos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-user-circle text-primary"></i> Mi Perfil</h2>
+                <a href="{{ url_for('lider.dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Información del perfil -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="avatar-large mb-3">
+                        <i class="fas fa-crown fa-3x text-warning"></i>
+                    </div>
+                    <h4>{{ current_user.nombre }} {{ current_user.apellido }}</h4>
+                    <p class="text-muted mb-3">{{ current_user.rol.title() }}</p>
+                    
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h5 class="mb-0">{{ total_usuarios_gestionados }}</h5>
+                            <small class="text-muted">Usuarios</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="mb-0">{{ servicios_supervisados }}</h5>
+                            <small class="text-muted">Servicios</small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="text-start">
+                        <p class="mb-2">
+                            <i class="fas fa-envelope text-primary me-2"></i>
+                            {{ current_user.email }}
+                        </p>
+                        {% if current_user.telefono %}
+                        <p class="mb-2">
+                            <i class="fas fa-phone text-primary me-2"></i>
+                            {{ current_user.telefono }}
+                        </p>
+                        {% endif %}
+                        <p class="mb-2">
+                            <i class="fas fa-calendar text-primary me-2"></i>
+                            Miembro desde {{ format_bogota_time(current_user.created_at, '%B %Y') if current_user.created_at else 'N/A' }}
+                        </p>
+                        {% if current_user.ultimo_acceso %}
+                        <p class="mb-0">
+                            <i class="fas fa-clock text-primary me-2"></i>
+                            Último acceso: {{ format_bogota_time(current_user.ultimo_acceso, '%d/%m/%Y %H:%M') }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Estadísticas rápidas -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Estadísticas del Mes</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-12 mb-3">
+                            <h4 class="text-primary mb-0">{{ solicitudes_mes }}</h4>
+                            <small class="text-muted">Solicitudes Gestionadas</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-success mb-0">{{ servicios_completados_mes }}</h5>
+                            <small class="text-muted">Completados</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-info mb-0">{{ tiempo_promedio_respuesta }}</h5>
+                            <small class="text-muted">Tiempo Prom.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Formulario de edición -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="perfilTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="info-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#info" type="button" role="tab">
+                                <i class="fas fa-user"></i> Información Personal
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="seguridad-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#seguridad" type="button" role="tab">
+                                <i class="fas fa-lock"></i> Seguridad
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="configuracion-tab" data-bs-toggle="tab" 
+                                    data-bs-target="#configuracion" type="button" role="tab">
+                                <i class="fas fa-cog"></i> Configuración
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="perfilTabsContent">
+                        <!-- Tab Información Personal -->
+                        <div class="tab-pane fade show active" id="info" role="tabpanel">
+                            <form id="infoForm">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="nombre" class="form-label">Nombre *</label>
+                                            <input type="text" class="form-control" id="nombre" name="nombre" 
+                                                   value="{{ current_user.nombre }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="apellido" class="form-label">Apellido *</label>
+                                            <input type="text" class="form-control" id="apellido" name="apellido" 
+                                                   value="{{ current_user.apellido }}" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="email" class="form-label">Email *</label>
+                                            <input type="email" class="form-control" id="email" name="email" 
+                                                   value="{{ current_user.email }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="telefono" class="form-label">Teléfono</label>
+                                            <input type="tel" class="form-control" id="telefono" name="telefono" 
+                                                   value="{{ current_user.telefono or '' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="bio" class="form-label">Biografía</label>
+                                    <textarea class="form-control" id="bio" name="bio" rows="3" 
+                                              placeholder="Cuéntanos un poco sobre ti...">{{ current_user.bio or '' }}</textarea>
+                                </div>
+                                
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-primary" onclick="guardarInformacion()">
+                                        <i class="fas fa-save"></i> Guardar Cambios
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Tab Seguridad -->
+                        <div class="tab-pane fade" id="seguridad" role="tabpanel">
+                            <form id="passwordForm">
+                                <div class="mb-3">
+                                    <label for="password_actual" class="form-label">Contraseña Actual *</label>
+                                    <input type="password" class="form-control" id="password_actual" 
+                                           name="password_actual" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="password_nueva" class="form-label">Nueva Contraseña *</label>
+                                    <input type="password" class="form-control" id="password_nueva" 
+                                           name="password_nueva" required minlength="6">
+                                    <div class="form-text">Mínimo 6 caracteres</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="password_confirmar" class="form-label">Confirmar Nueva Contraseña *</label>
+                                    <input type="password" class="form-control" id="password_confirmar" 
+                                           name="password_confirmar" required minlength="6">
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    <strong>Recomendaciones de seguridad:</strong>
+                                    <ul class="mb-0 mt-2">
+                                        <li>Usa al menos 8 caracteres</li>
+                                        <li>Incluye mayúsculas, minúsculas y números</li>
+                                        <li>Evita información personal</li>
+                                        <li>No reutilices contraseñas de otras cuentas</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-warning" onclick="cambiarPassword()">
+                                        <i class="fas fa-key"></i> Cambiar Contraseña
+                                    </button>
+                                </div>
+                            </form>
+                            
+                            <hr>
+                            
+                            <h6><i class="fas fa-shield-alt"></i> Sesiones Activas</h6>
+                            <div class="list-group">
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">Sesión Actual</h6>
+                                            <p class="mb-1">Windows - Chrome</p>
+                                            <small class="text-muted">IP: 192.168.1.100 - Ahora</small>
+                                        </div>
+                                        <span class="badge bg-success">Activa</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tab Configuración -->
+                        <div class="tab-pane fade" id="configuracion" role="tabpanel">
+                            <form id="configForm">
+                                <h6><i class="fas fa-bell"></i> Notificaciones</h6>
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="notif_email" checked>
+                                        <label class="form-check-label" for="notif_email">
+                                            Notificaciones por email
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="notif_solicitudes" checked>
+                                        <label class="form-check-label" for="notif_solicitudes">
+                                            Nuevas solicitudes
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="notif_servicios" checked>
+                                        <label class="form-check-label" for="notif_servicios">
+                                            Actualizaciones de servicios
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="notif_reportes">
+                                        <label class="form-check-label" for="notif_reportes">
+                                            Reportes semanales
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <hr>
+                                
+                                <h6><i class="fas fa-desktop"></i> Interfaz</h6>
+                                <div class="mb-3">
+                                    <label for="tema" class="form-label">Tema</label>
+                                    <select class="form-select" id="tema" name="tema">
+                                        <option value="claro">Claro</option>
+                                        <option value="oscuro">Oscuro</option>
+                                        <option value="auto">Automático</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="idioma" class="form-label">Idioma</label>
+                                    <select class="form-select" id="idioma" name="idioma">
+                                        <option value="es" selected>Español</option>
+                                        <option value="en">English</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="zona_horaria" class="form-label">Zona Horaria</label>
+                                    <select class="form-select" id="zona_horaria" name="zona_horaria">
+                                        <option value="America/Bogota" selected>Bogotá (UTC-5)</option>
+                                        <option value="America/Mexico_City">Ciudad de México (UTC-6)</option>
+                                        <option value="America/Lima">Lima (UTC-5)</option>
+                                        <option value="America/Santiago">Santiago (UTC-3)</option>
+                                    </select>
+                                </div>
+                                
+                                <hr>
+                                
+                                <h6><i class="fas fa-chart-line"></i> Dashboard</h6>
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="auto_refresh" checked>
+                                        <label class="form-check-label" for="auto_refresh">
+                                            Actualización automática (cada 30 segundos)
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="mostrar_mapa" checked>
+                                        <label class="form-check-label" for="mostrar_mapa">
+                                            Mostrar mapa en dashboard
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="sonidos">
+                                        <label class="form-check-label" for="sonidos">
+                                            Sonidos de notificación
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-primary" onclick="guardarConfiguracion()">
+                                        <i class="fas fa-save"></i> Guardar Configuración
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #dee2e6;
+    margin: 0 auto;
+}
+
+.nav-tabs .nav-link {
+    color: #6c757d;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    border-color: #0d6efd;
+}
+</style>
+
+<script>
+function guardarInformacion() {
+    const form = document.getElementById('infoForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const datos = Object.fromEntries(formData.entries());
+    
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    btn.disabled = true;
+    
+    // Hacer llamada real a la API
+    fetch('/lider/perfil/actualizar-informacion', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(datos)
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        
+        if (data.success) {
+            mostrarNotificacion(data.message, 'success');
+        } else {
+            mostrarNotificacion(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        mostrarNotificacion('Error de conexión. Intenta nuevamente.', 'error');
+        console.error('Error:', error);
+    });
+}
+
+function cambiarPassword() {
+    const form = document.getElementById('passwordForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const passwordActual = document.getElementById('password_actual').value;
+    const passwordNueva = document.getElementById('password_nueva').value;
+    const passwordConfirmar = document.getElementById('password_confirmar').value;
+    
+    if (passwordNueva !== passwordConfirmar) {
+        mostrarNotificacion('Las contraseñas no coinciden', 'error');
+        return;
+    }
+    
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cambiando...';
+    btn.disabled = true;
+    
+    // Hacer llamada real a la API
+    fetch('/lider/perfil/cambiar-password', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            password_actual: passwordActual,
+            password_nueva: passwordNueva,
+            password_confirmar: passwordConfirmar
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        
+        if (data.success) {
+            // Limpiar formulario
+            form.reset();
+            mostrarNotificacion(data.message, 'success');
+        } else {
+            mostrarNotificacion(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        mostrarNotificacion('Error de conexión. Intenta nuevamente.', 'error');
+        console.error('Error:', error);
+    });
+}
+
+function guardarConfiguracion() {
+    const form = document.getElementById('configForm');
+    const formData = new FormData(form);
+    
+    // Obtener valores de los switches
+    const switches = form.querySelectorAll('input[type="checkbox"]');
+    switches.forEach(sw => {
+        formData.set(sw.id, sw.checked);
+    });
+    
+    const datos = Object.fromEntries(formData.entries());
+    
+    // Simular guardado
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    btn.disabled = true;
+    
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        
+        mostrarNotificacion('Configuración guardada correctamente', 'success');
+    }, 1500);
+}
+
+function mostrarNotificacion(mensaje, tipo) {
+    const alertClass = tipo === 'success' ? 'alert-success' : 'alert-danger';
+    const icon = tipo === 'success' ? 'check-circle' : 'exclamation-triangle';
+    
+    const notification = document.createElement('div');
+    notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+    notification.innerHTML = `
+        <i class="fas fa-${icon} me-2"></i>
+        ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 5000);
+}
+
+// Validación en tiempo real para confirmación de contraseña
+document.getElementById('password_confirmar').addEventListener('input', function() {
+    const passwordNueva = document.getElementById('password_nueva').value;
+    const passwordConfirmar = this.value;
+    
+    if (passwordConfirmar && passwordNueva !== passwordConfirmar) {
+        this.setCustomValidity('Las contraseñas no coinciden');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+</script>
+{% endblock %}

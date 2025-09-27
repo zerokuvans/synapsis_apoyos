@@ -1,0 +1,206 @@
+// Main SCSS entry point for Synapsis Apoyos
+// Import Bootstrap
+@import '~bootstrap/scss/bootstrap';
+
+// Import custom variables and mixins
+@import 'variables';
+@import 'mixins';
+
+// Import component styles
+@import 'components/buttons';
+@import 'components/cards';
+@import 'components/forms';
+@import 'components/tables';
+@import 'components/modals';
+@import 'components/navigation';
+@import 'components/sidebar';
+@import 'components/dashboard';
+@import 'components/charts';
+@import 'components/notifications';
+@import 'components/loading';
+
+// Import page-specific styles
+@import 'pages/login';
+@import 'pages/dashboard';
+@import 'pages/estudiantes';
+@import 'pages/apoyos';
+@import 'pages/tecnicos';
+
+// Import utility classes
+@import 'utilities';
+
+// Global styles
+body {
+  font-family: $font-family-base;
+  background-color: $body-bg;
+  color: $body-color;
+  line-height: $line-height-base;
+}
+
+// Custom scrollbar
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: $gray-100;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $gray-400;
+  border-radius: 4px;
+  
+  &:hover {
+    background: $gray-500;
+  }
+}
+
+// Focus styles
+:focus {
+  outline: 2px solid $primary;
+  outline-offset: 2px;
+}
+
+// Print styles
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .sidebar {
+    display: none !important;
+  }
+  
+  .main-content {
+    margin-left: 0 !important;
+  }
+  
+  .card {
+    border: 1px solid $gray-300 !important;
+    box-shadow: none !important;
+  }
+  
+  .btn {
+    display: none !important;
+  }
+}
+
+// Responsive utilities
+@include media-breakpoint-down(md) {
+  .table-responsive-stack {
+    tr {
+      display: block;
+      border: 1px solid $gray-300;
+      margin-bottom: 1rem;
+      
+      td {
+        display: block;
+        text-align: right;
+        border: none;
+        padding: 0.5rem;
+        
+        &::before {
+          content: attr(data-label) ': ';
+          font-weight: bold;
+          float: left;
+        }
+      }
+    }
+    
+    thead {
+      display: none;
+    }
+  }
+}
+
+// Animation classes
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// Loading states
+.loading {
+  position: relative;
+  pointer-events: none;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid $primary;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Accessibility improvements
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .card {
+    border: 2px solid $dark !important;
+  }
+  
+  .btn {
+    border: 2px solid currentColor !important;
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,189 @@
+[
+  {
+    "route": "/auth/login",
+    "status_code": 200,
+    "expected_code": 200,
+    "success": true,
+    "message": "",
+    "timestamp": "2025-09-27T17:33:36.340291"
+  },
+  {
+    "route": "/auth/logout",
+    "status_code": 200,
+    "expected_code": 302,
+    "success": false,
+    "message": "",
+    "timestamp": "2025-09-27T17:33:36.379915"
+  },
+  {
+    "route": "/",
+    "status_code": 200,
+    "expected_code": 302,
+    "success": false,
+    "message": "",
+    "timestamp": "2025-09-27T17:33:36.413871"
+  },
+  {
+    "route": "/auth/login",
+    "status_code": 200,
+    "expected_code": 200,
+    "success": true,
+    "message": "Página de login",
+    "timestamp": "2025-09-27T17:33:36.422202"
+  },
+  {
+    "route": "/tecnico/dashboard",
+    "status_code": 302,
+    "expected_code": 302,
+    "success": true,
+    "message": "Correctamente protegida",
+    "timestamp": "2025-09-27T17:33:36.431461"
+  },
+  {
+    "route": "/movil/dashboard",
+    "status_code": 302,
+    "expected_code": 302,
+    "success": true,
+    "message": "Correctamente protegida",
+    "timestamp": "2025-09-27T17:33:36.441459"
+  },
+  {
+    "route": "/lider/dashboard",
+    "status_code": 302,
+    "expected_code": 302,
+    "success": true,
+    "message": "Correctamente protegida",
+    "timestamp": "2025-09-27T17:33:36.450253"
+  },
+  {
+    "route": "/tecnico/mapa",
+    "status_code": 302,
+    "expected_code": 302,
+    "success": true,
+    "message": "Correctamente protegida",
+    "timestamp": "2025-09-27T17:33:36.456968"
+  },
+  {
+    "route": "/tecnico/perfil",
+    "status_code": 302,
+    "expected_code": 302,
+    "success": true,
+    "message": "Correctamente protegida",
+    "timestamp": "2025-09-27T17:33:36.463617"
+  },
+  {
+    "route": "/movil/mapa",
+    "status_code": 302,
+    "expected_code": 302,
+    "success": true,
+    "message": "Correctamente protegida",
+    "timestamp": "2025-09-27T17:33:36.470263"
+  },
+  {
+    "route": "/movil/diagnostico-mapa",
+    "status_code": 302,
+    "expected_code": 302,
+    "success": true,
+    "message": "Correctamente protegida",
+    "timestamp": "2025-09-27T17:33:36.477395"
+  },
+  {
+    "route": "/api/solicitudes",
+    "status_code": 405,
+    "expected_code": 200,
+    "success": false,
+    "message": "Código inesperado, esperado uno de [200, 401, 302]",
+    "timestamp": "2025-09-27T17:33:36.483626"
+  },
+  {
+    "route": "/api/ubicaciones",
+    "status_code": 404,
+    "expected_code": 200,
+    "success": false,
+    "message": "Código inesperado, esperado uno de [200, 401, 302]",
+    "timestamp": "2025-09-27T17:33:36.499392"
+  },
+  {
+    "route": "/api/lider/moviles-activas",
+    "status_code": 200,
+    "expected_code": 200,
+    "success": true,
+    "message": "API responde (✅)",
+    "timestamp": "2025-09-27T17:33:36.531656"
+  },
+  {
+    "route": "/api/tecnico/moviles-asignadas",
+    "status_code": 200,
+    "expected_code": 200,
+    "success": true,
+    "message": "API responde (✅)",
+    "timestamp": "2025-09-27T17:33:36.562943"
+  },
+  {
+    "route": "/api/localidades",
+    "status_code": 200,
+    "expected_code": 200,
+    "success": true,
+    "message": "API responde (✅)",
+    "timestamp": "2025-09-27T17:33:36.615957"
+  },
+  {
+    "route": "/api/servicios",
+    "status_code": 404,
+    "expected_code": 200,
+    "success": false,
+    "message": "Código inesperado, esperado uno de [200, 401, 302]",
+    "timestamp": "2025-09-27T17:33:36.630484"
+  },
+  {
+    "route": "/api/usuarios",
+    "status_code": 404,
+    "expected_code": 200,
+    "success": false,
+    "message": "Código inesperado, esperado uno de [200, 401, 302]",
+    "timestamp": "2025-09-27T17:33:36.646639"
+  },
+  {
+    "route": "/api/reportes/dashboard",
+    "status_code": 404,
+    "expected_code": 200,
+    "success": false,
+    "message": "Código inesperado, esperado uno de [200, 401, 302]",
+    "timestamp": "2025-09-27T17:33:36.663704"
+  },
+  {
+    "route": "/api/monitoreo/health",
+    "status_code": 404,
+    "expected_code": 200,
+    "success": false,
+    "message": "Código inesperado, esperado uno de [200, 401, 302]",
+    "timestamp": "2025-09-27T17:33:36.671359"
+  },
+  {
+    "route": "/health",
+    "status_code": 200,
+    "expected_code": 200,
+    "success": true,
+    "message": "Estado de salud: unknown",
+    "timestamp": "2025-09-27T17:33:36.683745"
+  },
+  {
+    "route": "/health",
+    "status_code": 200,
+    "expected_code": 200,
+    "success": true,
+    "message": "",
+    "timestamp": "2025-09-27T17:33:36.702535"
+  },
+  {
+    "route": "/metrics",
+    "status_code": 500,
+    "expected_code": [
+      200,
+      404
+    ],
+    "success": false,
+    "message": "",
+    "timestamp": "2025-09-27T17:33:37.743803"
+  }
+]

@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+
+{% block title %}Servicio Activo - Synapsis Apoyos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-cog fa-spin text-primary"></i> Servicio Activo</h2>
+                <div>
+                    <span class="badge bg-warning fs-6">En Servicio</span>
+                    <a href="{{ url_for('movil.dashboard') }}" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-arrow-left"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información del servicio -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-{{ 'ladder' if servicio.solicitud.tipo_apoyo == 'escalera' else 'tools' }}"></i>
+                        Apoyo de {{ servicio.solicitud.tipo_apoyo.title() }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-user text-primary"></i> Información del Técnico</h6>
+                            <p class="mb-1"><strong>Nombre:</strong> {{ servicio.solicitud.tecnico.nombre }} {{ servicio.solicitud.tecnico.apellido }}</p>
+                            <p class="mb-1"><strong>Email:</strong> {{ servicio.solicitud.tecnico.email }}</p>
+                            {% if servicio.solicitud.tecnico.telefono %}
+                            <p class="mb-1"><strong>Teléfono:</strong> 
+                                <a href="tel:{{ servicio.solicitud.tecnico.telefono }}" class="text-decoration-none">
+                                    {{ servicio.solicitud.tecnico.telefono }}
+                                </a>
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-map-marker-alt text-primary"></i> Ubicación</h6>
+                            {% if servicio.solicitud.direccion %}
+                            <p class="mb-1"><strong>Dirección:</strong> {{ servicio.solicitud.direccion }}</p>
+                            {% endif %}
+                            <p class="mb-1"><strong>Coordenadas:</strong> 
+                                {{ "%.6f"|format(servicio.solicitud.latitud) }}, {{ "%.6f"|format(servicio.solicitud.longitud) }}
+                            </p>
+                            <button class="btn btn-outline-primary btn-sm" onclick="abrirMapa()">
+                                <i class="fas fa-external-link-alt"></i> Abrir en Google Maps
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {% if servicio.solicitud.observaciones %}
+                    <hr>
+                    <h6><i class="fas fa-comment text-primary"></i> Observaciones de la Solicitud</h6>
+                    <p class="mb-0">{{ servicio.solicitud.observaciones }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estado del servicio y acciones -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-tasks"></i> Estado del Servicio</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Timeline del servicio -->
+                    <div class="timeline">
+                        <div class="timeline-item {{ 'completed' if servicio.aceptado_at else 'current' }}">
+                            <div class="timeline-marker bg-success">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>Solicitud Aceptada</h6>
+                                <p class="text-muted mb-0">
+                                    {{ servicio.aceptado_at.strftime('%d/%m/%Y %H:%M') if servicio.aceptado_at else 'Pendiente' }}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item {{ 'completed' if servicio.estado_servicio in ['en_ruta', 'en_sitio', 'completado'] else 'current' if servicio.estado_servicio == 'aceptado' else '' }}">
+                            <div class="timeline-marker {{ 'bg-success' if servicio.estado_servicio in ['en_ruta', 'en_sitio', 'completado'] else 'bg-warning' if servicio.estado_servicio == 'aceptado' else 'bg-secondary' }}">
+                                <i class="fas fa-route"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>En Ruta</h6>
+                                <p class="text-muted mb-0">
+                                    {% if servicio.estado_servicio in ['en_ruta', 'en_sitio', 'completado'] %}
+                                        En camino al técnico
+                                    {% elif servicio.estado_servicio == 'aceptado' %}
+                                        Listo para iniciar ruta
+                                    {% else %}
+                                        Pendiente
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item {{ 'completed' if servicio.estado_servicio in ['en_sitio', 'completado'] else 'current' if servicio.estado_servicio == 'en_ruta' else '' }}">
+                            <div class="timeline-marker {{ 'bg-success' if servicio.estado_servicio in ['en_sitio', 'completado'] else 'bg-warning' if servicio.estado_servicio == 'en_ruta' else 'bg-secondary' }}">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>Llegada al Sitio</h6>
+                                <p class="text-muted mb-0">
+                                    {% if servicio.estado_servicio in ['en_sitio', 'completado'] %}
+                                        En el sitio del técnico
+                                    {% elif servicio.estado_servicio == 'en_ruta' %}
+                                        Dirigiéndose al sitio
+                                    {% else %}
+                                        Pendiente
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item {{ 'completed' if servicio.estado_servicio == 'completado' else 'current' if servicio.estado_servicio == 'en_sitio' else '' }}">
+                            <div class="timeline-marker {{ 'bg-success' if servicio.estado_servicio == 'completado' else 'bg-warning' if servicio.estado_servicio == 'en_sitio' else 'bg-secondary' }}">
+                                <i class="fas fa-flag-checkered"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6>Servicio Completado</h6>
+                                <p class="text-muted mb-0">
+                                    {% if servicio.estado_servicio == 'completado' %}
+                                        {{ servicio.finalizado_at.strftime('%d/%m/%Y %H:%M') if servicio.finalizado_at else 'Completado' }}
+                                    {% elif servicio.estado_servicio == 'en_sitio' %}
+                                        Prestando apoyo
+                                    {% else %}
+                                        Pendiente
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel de acciones -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-cogs"></i> Acciones</h5>
+                </div>
+                <div class="card-body">
+                    {% if servicio.estado_servicio == 'aceptado' %}
+                    <button class="btn btn-success w-100 mb-3" onclick="iniciarRuta()">
+                        <i class="fas fa-route"></i> Iniciar Ruta
+                    </button>
+                    {% elif servicio.estado_servicio == 'en_ruta' %}
+                    <button class="btn btn-info w-100 mb-3" onclick="llegarSitio()">
+                        <i class="fas fa-map-marker-alt"></i> Marcar Llegada
+                    </button>
+                    {% elif servicio.estado_servicio == 'en_sitio' %}
+                    <button class="btn btn-warning w-100 mb-3" onclick="iniciarServicio()" 
+                            {% if servicio.iniciado_at %}disabled{% endif %}>
+                        <i class="fas fa-play"></i> 
+                        {% if servicio.iniciado_at %}Servicio Iniciado{% else %}Iniciar Servicio{% endif %}
+                    </button>
+                    
+                    {% if servicio.iniciado_at %}
+                    <button class="btn btn-success w-100 mb-3" onclick="finalizarServicio()">
+                        <i class="fas fa-stop"></i> Finalizar Servicio
+                    </button>
+                    {% endif %}
+                    {% endif %}
+                    
+                    {% if servicio.estado_servicio != 'completado' %}
+                    <button class="btn btn-outline-danger w-100" onclick="cancelarServicio()">
+                        <i class="fas fa-times"></i> Cancelar Servicio
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Información de tiempo -->
+            {% if servicio.iniciado_at %}
+            <div class="card mt-3">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-stopwatch"></i> Tiempo de Servicio</h6>
+                </div>
+                <div class="card-body text-center">
+                    <h3 id="tiempoServicio" class="text-primary">00:00:00</h3>
+                    <p class="text-muted mb-0">Límite: 1 hora</p>
+                    <div class="progress mt-2">
+                        <div id="progressTiempo" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Mapa simulado -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-map"></i> Navegación</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="mapa" style="height: 400px; background: #f8f9fa; border-radius: 0 0 0.375rem 0.375rem;">
+                        <div class="d-flex align-items-center justify-content-center h-100">
+                            <div class="text-center">
+                                <i class="fas fa-map fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">Mapa de Navegación</h5>
+                                <p class="text-muted">Ruta hacia: {{ servicio.solicitud.direccion or 'Ubicación del técnico' }}</p>
+                                <button class="btn btn-primary" onclick="abrirMapa()">
+                                    <i class="fas fa-external-link-alt"></i> Abrir en Google Maps
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para finalizar servicio -->
+<div class="modal fade" id="finalizarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Finalizar Servicio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="finalizarForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="observaciones_finales" class="form-label">Observaciones finales</label>
+                        <textarea class="form-control" id="observaciones_finales" name="observaciones_finales" 
+                                  rows="4" placeholder="Describe cómo se completó el servicio, qué apoyo se brindó, etc."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Finalizar Servicio</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para cancelar servicio -->
+<div class="modal fade" id="cancelarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancelar Servicio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="cancelarForm" method="POST">
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Atención:</strong> Al cancelar el servicio, la solicitud volverá a estar disponible para otras móviles.
+                    </div>
+                    <div class="mb-3">
+                        <label for="observaciones_cancelacion" class="form-label">Motivo de cancelación *</label>
+                        <textarea class="form-control" id="observaciones_cancelacion" name="observaciones" 
+                                  rows="3" required placeholder="Describe el motivo de la cancelación..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn btn-danger">Cancelar Servicio</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 30px;
+}
+
+.timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -19px;
+    top: 30px;
+    height: calc(100% + 10px);
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item.completed:not(:last-child)::before {
+    background: #28a745;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -30px;
+    top: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+}
+
+.timeline-content h6 {
+    margin-bottom: 5px;
+    color: #495057;
+}
+</style>
+
+<script>
+const servicioId = {{ servicio.id }};
+const iniciadoAt = {% if servicio.iniciado_at %}'{{ servicio.iniciado_at.isoformat() }}'{% else %}null{% endif %};
+
+function iniciarRuta() {
+    if (confirm('¿Confirmas que vas a iniciar la ruta hacia el técnico?')) {
+        enviarAccion('iniciar-ruta');
+    }
+}
+
+function llegarSitio() {
+    if (confirm('¿Confirmas que has llegado al sitio del técnico?')) {
+        enviarAccion('llegar-sitio');
+    }
+}
+
+function iniciarServicio() {
+    if (confirm('¿Confirmas que vas a iniciar el servicio de apoyo?')) {
+        enviarAccion('iniciar');
+    }
+}
+
+function finalizarServicio() {
+    const modal = new bootstrap.Modal(document.getElementById('finalizarModal'));
+    document.getElementById('finalizarForm').action = `/movil/servicio/${servicioId}/finalizar`;
+    modal.show();
+}
+
+function cancelarServicio() {
+    const modal = new bootstrap.Modal(document.getElementById('cancelarModal'));
+    document.getElementById('cancelarForm').action = `/movil/servicio/${servicioId}/cancelar`;
+    modal.show();
+}
+
+function enviarAccion(accion) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/movil/servicio/${servicioId}/${accion}`;
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function abrirMapa() {
+    const lat = {{ servicio.solicitud.latitud }};
+    const lng = {{ servicio.solicitud.longitud }};
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    window.open(url, '_blank');
+}
+
+// Actualizar tiempo de servicio si está iniciado
+if (iniciadoAt) {
+    function actualizarTiempo() {
+        const inicio = new Date(iniciadoAt);
+        const ahora = new Date();
+        const tiempoTranscurrido = Math.floor((ahora - inicio) / 1000); // segundos transcurridos
+        
+        // Calcular tiempo restante desde 60 minutos (3600 segundos)
+        const limiteSegundos = 3600;
+        const tiempoRestante = Math.max(0, limiteSegundos - tiempoTranscurrido);
+        
+        // Convertir tiempo restante a MM:SS
+        const minutos = Math.floor(tiempoRestante / 60);
+        const segundos = tiempoRestante % 60;
+        
+        const tiempoStr = `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+        document.getElementById('tiempoServicio').textContent = tiempoStr;
+        
+        // Actualizar barra de progreso (límite 1 hora = 3600 segundos)
+        const porcentaje = Math.min((tiempoTranscurrido / 3600) * 100, 100);
+        const progressBar = document.getElementById('progressTiempo');
+        progressBar.style.width = porcentaje + '%';
+        
+        if (porcentaje > 80) {
+            progressBar.className = 'progress-bar bg-danger';
+        } else if (porcentaje > 60) {
+            progressBar.className = 'progress-bar bg-warning';
+        } else {
+            progressBar.className = 'progress-bar bg-success';
+        }
+        
+        // Si se agotó el tiempo, mostrar en rojo
+        if (tiempoRestante === 0) {
+            document.getElementById('tiempoServicio').style.color = '#dc3545';
+            document.getElementById('tiempoServicio').style.fontWeight = 'bold';
+        }
+    }
+    
+    actualizarTiempo();
+    setInterval(actualizarTiempo, 1000);
+} else {
+    // Si no ha iniciado, mostrar tiempo completo
+    document.getElementById('tiempoServicio').textContent = '60:00';
+}
+</script>
+{% endblock %}

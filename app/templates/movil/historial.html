@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Servicios - Synapsis Apoyos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-history text-primary"></i> Historial de Servicios</h2>
+                <a href="{{ url_for('movil.dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="estado" class="form-label">Filtrar por Estado</label>
+                            <select class="form-select" id="estado" name="estado" onchange="this.form.submit()">
+                                <option value="todos" {{ 'selected' if estado_filtro == 'todos' else '' }}>Todos</option>
+                                <option value="completado" {{ 'selected' if estado_filtro == 'completado' else '' }}>Completados</option>
+                                <option value="cancelado" {{ 'selected' if estado_filtro == 'cancelado' else '' }}>Cancelados</option>
+                                <option value="aceptado" {{ 'selected' if estado_filtro == 'aceptado' else '' }}>En Proceso</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8 d-flex align-items-end">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="fas fa-filter"></i> Filtrar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas rápidas -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ servicios.total }}</h4>
+                            <p class="mb-0">Total Servicios</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-list fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0" id="completados">-</h4>
+                            <p class="mb-0">Completados</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0" id="cancelados">-</h4>
+                            <p class="mb-0">Cancelados</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-times-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0" id="tiempoPromedio">-</h4>
+                            <p class="mb-0">Tiempo Promedio</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Servicios -->
+    <div class="row">
+        <div class="col-12">
+            {% if servicios.items %}
+                {% for servicio in servicios.items %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-center mb-2">
+                                    <h5 class="card-title mb-0 me-3">
+                                        <i class="fas fa-{{ 'ladder' if servicio.solicitud.tipo_apoyo == 'escalera' else 'tools' }}"></i>
+                                        Apoyo de {{ servicio.solicitud.tipo_apoyo.title() }}
+                                    </h5>
+                                    <span class="badge bg-{{ 
+                                        'success' if servicio.estado_servicio == 'completado' else
+                                        'danger' if servicio.estado_servicio == 'cancelado' else
+                                        'warning' if servicio.estado_servicio in ['aceptado', 'en_ruta', 'en_sitio'] else
+                                        'secondary'
+                                    }}">{{ servicio.estado_servicio.replace('_', ' ').title() }}</span>
+                                </div>
+                                
+                                <p class="card-text mb-2">
+                                    <strong>Técnico:</strong> {{ servicio.solicitud.tecnico.nombre }} {{ servicio.solicitud.tecnico.apellido }}<br>
+                                    <small class="text-muted">
+                                        <i class="fas fa-envelope"></i> {{ servicio.solicitud.tecnico.email }}
+                                        {% if servicio.solicitud.tecnico.telefono %}
+                                        | <i class="fas fa-phone"></i> {{ servicio.solicitud.tecnico.telefono }}
+                                        {% endif %}
+                                    </small>
+                                </p>
+                                
+                                {% if servicio.solicitud.direccion %}
+                                <p class="card-text mb-2">
+                                    <i class="fas fa-map-marker-alt text-primary"></i> 
+                                    {{ servicio.solicitud.direccion }}
+                                </p>
+                                {% endif %}
+                                
+                                {% if servicio.solicitud.observaciones %}
+                                <p class="card-text mb-2">
+                                    <strong>Observaciones iniciales:</strong> {{ servicio.solicitud.observaciones }}
+                                </p>
+                                {% endif %}
+                                
+                                {% if servicio.observaciones_finales %}
+                                <p class="card-text mb-2">
+                                    <strong>Observaciones finales:</strong> {{ servicio.observaciones_finales }}
+                                </p>
+                                {% endif %}
+                                
+                                <!-- Timeline de fechas -->
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-check text-success"></i> 
+                                        Aceptado: {{ servicio.aceptado_at.strftime('%d/%m/%Y %H:%M') }}
+                                        
+                                        {% if servicio.iniciado_at %}
+                                        <br><i class="fas fa-play text-info"></i> 
+                                        Iniciado: {{ servicio.iniciado_at.strftime('%d/%m/%Y %H:%M') }}
+                                        {% endif %}
+                                        
+                                        {% if servicio.finalizado_at %}
+                                        <br><i class="fas fa-stop text-primary"></i> 
+                                        Finalizado: {{ servicio.finalizado_at.strftime('%d/%m/%Y %H:%M') }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4 text-end">
+                                <div class="mb-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-map"></i> 
+                                        {{ "%.6f"|format(servicio.solicitud.latitud) }}, {{ "%.6f"|format(servicio.solicitud.longitud) }}
+                                    </small>
+                                </div>
+                                
+                                {% if servicio.duracion_minutos %}
+                                <div class="mb-2">
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-clock"></i> {{ servicio.duracion_minutos }} minutos
+                                    </span>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="btn-group-vertical" role="group">
+                                    <button class="btn btn-sm btn-outline-info" 
+                                            onclick="verDetalles({{ servicio.id }})">
+                                        <i class="fas fa-eye"></i> Ver Detalles
+                                    </button>
+                                    
+                                    {% if servicio.solicitud.direccion or (servicio.solicitud.latitud and servicio.solicitud.longitud) %}
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="abrirMapa({{ servicio.solicitud.latitud }}, {{ servicio.solicitud.longitud }})">
+                                        <i class="fas fa-map"></i> Ver Ubicación
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <!-- Paginación -->
+                {% if servicios.pages > 1 %}
+                <nav aria-label="Paginación de servicios">
+                    <ul class="pagination justify-content-center">
+                        {% if servicios.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('movil.historial', page=servicios.prev_num, estado=estado_filtro) }}">
+                                <i class="fas fa-chevron-left"></i> Anterior
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for page_num in servicios.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != servicios.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('movil.historial', page=page_num, estado=estado_filtro) }}">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% endif %}
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if servicios.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('movil.historial', page=servicios.next_num, estado=estado_filtro) }}">
+                                Siguiente <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No hay servicios</h4>
+                    <p class="text-muted">No se encontraron servicios con los filtros seleccionados.</p>
+                    <a href="{{ url_for('movil.dashboard') }}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver detalles -->
+<div class="modal fade" id="detallesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles del Servicio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detallesContent">
+                <!-- Contenido se carga dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    calcularEstadisticas();
+});
+
+function calcularEstadisticas() {
+    // Simular cálculo de estadísticas basado en los servicios mostrados
+    const servicios = {{ servicios_json | tojson }};
+    
+    let completados = 0;
+    let cancelados = 0;
+    let tiempoTotal = 0;
+    let serviciosConTiempo = 0;
+    
+    servicios.forEach(servicio => {
+        if (servicio.estado_servicio === 'completado') {
+            completados++;
+            if (servicio.duracion_minutos) {
+                tiempoTotal += servicio.duracion_minutos;
+                serviciosConTiempo++;
+            }
+        } else if (servicio.estado_servicio === 'cancelado') {
+            cancelados++;
+        }
+    });
+    
+    document.getElementById('completados').textContent = completados;
+    document.getElementById('cancelados').textContent = cancelados;
+    
+    if (serviciosConTiempo > 0) {
+        const promedio = Math.round(tiempoTotal / serviciosConTiempo);
+        document.getElementById('tiempoPromedio').textContent = promedio + ' min';
+    } else {
+        document.getElementById('tiempoPromedio').textContent = '0 min';
+    }
+}
+
+function verDetalles(servicioId) {
+    // Mostrar loading
+    document.getElementById('detallesContent').innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2 text-muted">Cargando detalles del servicio...</p>
+        </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('detallesModal'));
+    modal.show();
+    
+    // Obtener detalles del servicio
+    fetch(`/movil/servicio/${servicioId}/detalles`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const servicio = data.servicio;
+                const content = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-info-circle"></i> Información General</h6>
+                            <table class="table table-sm">
+                                <tr><td><strong>ID:</strong></td><td>#${servicio.id}</td></tr>
+                                <tr><td><strong>Estado:</strong></td><td><span class="badge bg-${getEstadoColor(servicio.estado_servicio)}">${servicio.estado_servicio}</span></td></tr>
+                                <tr><td><strong>Tipo:</strong></td><td>${servicio.tipo_apoyo}</td></tr>
+                                <tr><td><strong>Prioridad:</strong></td><td><span class="badge bg-${getPrioridadColor(servicio.prioridad)}">${servicio.prioridad}</span></td></tr>
+                            </table>
+                            
+                            <h6><i class="fas fa-map-marker-alt"></i> Ubicación</h6>
+                            <table class="table table-sm">
+                                <tr><td><strong>Dirección:</strong></td><td>${servicio.direccion}</td></tr>
+                                <tr><td><strong>Coordenadas:</strong></td><td>${servicio.latitud}, ${servicio.longitud}</td></tr>
+                            </table>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-clock"></i> Timeline</h6>
+                            <div class="timeline-mobile">
+                                <div class="timeline-item">
+                                    <i class="fas fa-plus-circle text-success"></i>
+                                    <div>
+                                        <strong>Creado:</strong><br>
+                                        <small>${formatearFecha(servicio.created_at)}</small>
+                                    </div>
+                                </div>
+                                ${servicio.aceptado_at ? `
+                                <div class="timeline-item">
+                                    <i class="fas fa-check-circle text-info"></i>
+                                    <div>
+                                        <strong>Aceptado:</strong><br>
+                                        <small>${formatearFecha(servicio.aceptado_at)}</small>
+                                    </div>
+                                </div>
+                                ` : ''}
+                                ${servicio.iniciado_at ? `
+                                <div class="timeline-item">
+                                    <i class="fas fa-play-circle text-warning"></i>
+                                    <div>
+                                        <strong>Iniciado:</strong><br>
+                                        <small>${formatearFecha(servicio.iniciado_at)}</small>
+                                    </div>
+                                </div>
+                                ` : ''}
+                                ${servicio.finalizado_at ? `
+                                <div class="timeline-item">
+                                    <i class="fas fa-stop-circle text-primary"></i>
+                                    <div>
+                                        <strong>Finalizado:</strong><br>
+                                        <small>${formatearFecha(servicio.finalizado_at)}</small>
+                                    </div>
+                                </div>
+                                ` : ''}
+                            </div>
+                            
+                            ${servicio.observaciones_iniciales || servicio.observaciones_finales ? `
+                            <h6 class="mt-3"><i class="fas fa-comment"></i> Observaciones</h6>
+                            ${servicio.observaciones_iniciales ? `<p><strong>Iniciales:</strong> ${servicio.observaciones_iniciales}</p>` : ''}
+                            ${servicio.observaciones_finales ? `<p><strong>Finales:</strong> ${servicio.observaciones_finales}</p>` : ''}
+                            ` : ''}
+                        </div>
+                    </div>
+                    
+                    ${servicio.latitud && servicio.longitud ? `
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary btn-sm" onclick="abrirMapa(${servicio.latitud}, ${servicio.longitud})">
+                            <i class="fas fa-map-marker-alt"></i> Ver en Mapa
+                        </button>
+                    </div>
+                    ` : ''}
+                `;
+                
+                document.getElementById('detallesContent').innerHTML = content;
+            } else {
+                document.getElementById('detallesContent').innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                        <h5>Error al cargar detalles</h5>
+                        <p class="text-muted">${data.message || 'No se pudieron cargar los detalles del servicio.'}</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('detallesContent').innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                    <h5>Error de conexión</h5>
+                    <p class="text-muted">No se pudo conectar con el servidor.</p>
+                </div>
+            `;
+        });
+}
+
+function getEstadoColor(estado) {
+    const colores = {
+        'pendiente': 'secondary',
+        'aceptado': 'info',
+        'en_ruta': 'primary',
+        'en_sitio': 'warning',
+        'completado': 'success',
+        'cancelado': 'danger'
+    };
+    return colores[estado] || 'secondary';
+}
+
+function getPrioridadColor(prioridad) {
+    const colores = {
+        'baja': 'success',
+        'media': 'warning',
+        'alta': 'danger',
+        'critica': 'dark'
+    };
+    return colores[prioridad] || 'secondary';
+}
+
+function formatearFecha(fechaStr) {
+    const fecha = new Date(fechaStr);
+    const opciones = {
+        timeZone: 'America/Bogota',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    };
+    return fecha.toLocaleString('es-CO', opciones);
+}
+
+function abrirMapa(lat, lng) {
+    const url = `https://www.google.com/maps?q=${lat},${lng}`;
+    window.open(url, '_blank');
+}
+</script>
+{% endblock %}

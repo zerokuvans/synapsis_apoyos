@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Móvil - Synapsis Apoyos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-truck text-primary"></i> Dashboard Móvil de Apoyo</h2>
+                <div>
+                    <span class="badge bg-{{ 'success' if not servicio_activo else 'warning' }} fs-6">
+                        {{ 'Disponible' if not servicio_activo else 'En Servicio' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if servicio_activo %}
+    <!-- Servicio Activo -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning border-start border-warning border-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="alert-heading mb-2">
+                            <i class="fas fa-exclamation-triangle"></i> Servicio Activo
+                        </h5>
+                        <p class="mb-1">
+                            <strong>Solicitud:</strong> {{ servicio_activo.solicitud.tipo_apoyo.title() }} - 
+                            Estado: <span class="badge bg-info">{{ servicio_activo.estado_servicio.replace('_', ' ').title() }}</span>
+                        </p>
+                        <p class="mb-0">
+                            <small class="text-muted">
+                                <i class="fas fa-clock"></i> Aceptado: {{ format_bogota_time(servicio_activo.aceptado_at, '%d/%m/%Y %H:%M') }}
+                            </small>
+                        </p>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('movil.servicio_activo', servicio_id=servicio_activo.id) }}" 
+                           class="btn btn-warning">
+                            <i class="fas fa-eye"></i> Ver Servicio
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <!-- Estadísticas rápidas -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ solicitudes_cercanas|length }}</h4>
+                            <p class="mb-0">Solicitudes Cercanas</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-map-marker-alt fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ servicios_recientes|length }}</h4>
+                            <p class="mb-0">Servicios Recientes</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0" id="tiempoOnline">--:--</h4>
+                            <p class="mb-0">Tiempo Online</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0" id="distanciaRecorrida">0</h4>
+                            <p class="mb-0">Km Recorridos</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-route fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if not servicio_activo %}
+    <!-- Solicitudes Cercanas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> Solicitudes Cercanas</h5>
+                    <button class="btn btn-light btn-sm" onclick="actualizarSolicitudes()">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if solicitudes_cercanas %}
+                        <div class="row">
+                            {% for item in solicitudes_cercanas %}
+                            {% set solicitud = item.solicitud %}
+                            <div class="col-lg-6 mb-3">
+                                <div class="card border-start border-primary border-4">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="card-title mb-0">
+                                                <i class="fas fa-{{ 'ladder' if solicitud.tipo_apoyo == 'escalera' else 'tools' }} text-primary"></i>
+                                                Apoyo de {{ solicitud.tipo_apoyo.title() }}
+                                            </h6>
+                                            <span class="badge bg-warning">{{ item.distancia_km }} km</span>
+                                        </div>
+                                        
+                                        <p class="card-text small text-muted mb-2">
+                                            <i class="fas fa-user"></i> {{ solicitud.tecnico.nombre }} {{ solicitud.tecnico.apellido }}<br>
+                                            <i class="fas fa-clock"></i> {{ format_bogota_time(solicitud.created_at, '%H:%M') }} - 
+                                            <span class="text-danger">Expira: {{ format_bogota_time(solicitud.limite_tiempo, '%H:%M') }}</span>
+                                        </p>
+                                        
+                                        {% if solicitud.direccion %}
+                                        <p class="card-text small">
+                                            <i class="fas fa-map-marker-alt text-primary"></i> {{ solicitud.direccion }}
+                                        </p>
+                                        {% endif %}
+                                        
+                                        {% if solicitud.observaciones %}
+                                        <p class="card-text small">
+                                            <strong>Observaciones:</strong> {{ solicitud.observaciones[:100] }}{% if solicitud.observaciones|length > 100 %}...{% endif %}
+                                        </p>
+                                        {% endif %}
+                                        
+                                        <div class="d-flex gap-2 mt-3">
+                                            <button class="btn btn-success btn-sm flex-fill" 
+                                                    onclick="aceptarSolicitud({{ solicitud.id }})">
+                                                <i class="fas fa-check"></i> Aceptar
+                                            </button>
+                                            <button class="btn btn-outline-danger btn-sm flex-fill" 
+                                                    onclick="rechazarSolicitud({{ solicitud.id }})">
+                                                <i class="fas fa-times"></i> Rechazar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay solicitudes cercanas</h5>
+                            <p class="text-muted">No se encontraron solicitudes de apoyo en tu área.</p>
+                            <button class="btn btn-outline-primary" onclick="actualizarSolicitudes()">
+                                <i class="fas fa-sync-alt"></i> Buscar Nuevamente
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Servicios Recientes -->
+    {% if servicios_recientes %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Servicios Recientes</h5>
+                    <a href="{{ url_for('movil.historial') }}" class="btn btn-light btn-sm">
+                        <i class="fas fa-list"></i> Ver Todo
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th>Técnico</th>
+                                    <th>Estado</th>
+                                    <th>Fecha</th>
+                                    <th>Duración</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for servicio in servicios_recientes %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-{{ 'ladder' if servicio.solicitud.tipo_apoyo == 'escalera' else 'tools' }}"></i>
+                                        {{ servicio.solicitud.tipo_apoyo.title() }}
+                                    </td>
+                                    <td>{{ servicio.solicitud.tecnico.nombre }} {{ servicio.solicitud.tecnico.apellido }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 
+                                            'success' if servicio.estado_servicio == 'completado' else
+                                            'danger' if servicio.estado_servicio == 'cancelado' else
+                                            'warning'
+                                        }}">
+                                            {{ servicio.estado_servicio.replace('_', ' ').title() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ servicio.aceptado_at.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        {% if servicio.duracion_minutos %}
+                                            {{ servicio.duracion_minutos }} min
+                                        {% else %}
+                                            --
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal para rechazar solicitud -->
+<div class="modal fade" id="rechazarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Rechazar Solicitud</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="rechazarForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="observaciones_rechazo" class="form-label">Motivo del rechazo *</label>
+                        <textarea class="form-control" id="observaciones_rechazo" name="observaciones" 
+                                  rows="3" required placeholder="Describe el motivo del rechazo..."></textarea>
+                    </div>
+                    <div class="form-text">
+                        <i class="fas fa-info-circle"></i> Las observaciones son obligatorias para rechazar una solicitud.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Rechazar Solicitud</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let tiempoInicioSesion = new Date();
+
+function actualizarTiempoOnline() {
+    const ahora = new Date();
+    const diferencia = ahora - tiempoInicioSesion;
+    const horas = Math.floor(diferencia / (1000 * 60 * 60));
+    const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
+    
+    document.getElementById('tiempoOnline').textContent = 
+        `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
+}
+
+function aceptarSolicitud(solicitudId) {
+    if (confirm('¿Estás seguro de que quieres aceptar esta solicitud?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/movil/solicitud/${solicitudId}/aceptar`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function rechazarSolicitud(solicitudId) {
+    const form = document.getElementById('rechazarForm');
+    form.action = `/movil/solicitud/${solicitudId}/rechazar`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('rechazarModal'));
+    modal.show();
+}
+
+function actualizarSolicitudes() {
+    location.reload();
+}
+
+// Actualizar tiempo online cada minuto
+setInterval(actualizarTiempoOnline, 60000);
+actualizarTiempoOnline();
+
+// Simular distancia recorrida
+setInterval(() => {
+    const elemento = document.getElementById('distanciaRecorrida');
+    const actual = parseFloat(elemento.textContent) || 0;
+    elemento.textContent = (actual + Math.random() * 0.1).toFixed(1);
+}, 30000);
+</script>
+{% endblock %}

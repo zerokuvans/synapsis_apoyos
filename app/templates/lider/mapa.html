@@ -1,0 +1,1101 @@
+{% extends "base.html" %}
+
+{% block title %}Mapa General - Synapsis Apoyos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-map text-primary"></i> Mapa General de Operaciones</h2>
+                <div>
+                    <button class="btn btn-outline-primary me-2" id="actualizarMapa">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
+                    <a href="{{ url_for('lider.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Panel de control -->
+        <div class="col-lg-3">
+            <!-- Resumen de estado -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Estado General</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">Móviles activas:</small>
+                        <div class="fw-bold text-success">{{ moviles_ubicaciones|length }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Solicitudes activas:</small>
+                        <div class="fw-bold text-warning">{{ solicitudes_activas|length }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Servicios en curso:</small>
+                        <div class="fw-bold text-info">{{ servicios_activos|length }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Última actualización:</small>
+                        <div id="ultimaActualizacion" class="fw-bold">--:--</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Móviles activas -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-truck"></i> Móviles Activas</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% if moviles_ubicaciones %}
+                            {% for movil, ubicacion in moviles_ubicaciones %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ movil.nombre }} {{ movil.apellido }}</h6>
+                                        <small class="text-muted">
+                                            <i class="fas fa-map-marker-alt"></i> 
+                                            {{ "%.4f"|format(ubicacion.latitud) }}, {{ "%.4f"|format(ubicacion.longitud) }}
+                                        </small>
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock"></i> 
+                                            {{ ubicacion.timestamp.strftime('%H:%M') }}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-success">Online</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="list-group-item text-center text-muted">
+                                <i class="fas fa-search"></i> No hay móviles activas
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Solicitudes pendientes -->
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Solicitudes Pendientes</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% if solicitudes_activas %}
+                            {% for solicitud in solicitudes_activas[:5] %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <i class="fas fa-{{ 'ladder' if solicitud.tipo_apoyo == 'escalera' else 'tools' }}"></i>
+                                            {{ solicitud.tipo_apoyo.title() }}
+                                        </h6>
+                                        <p class="mb-1 small">{{ solicitud.tecnico.nombre }} {{ solicitud.tecnico.apellido }}</p>
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock"></i> 
+                                            {{ solicitud.created_at.strftime('%H:%M') }}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-{{ 'warning' if solicitud.estado == 'pendiente' else 'info' }}">
+                                        {{ solicitud.estado.title() }}
+                                    </span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% if solicitudes_activas|length > 5 %}
+                            <div class="list-group-item text-center">
+                                <small class="text-muted">Y {{ solicitudes_activas|length - 5 }} más...</small>
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="list-group-item text-center text-muted">
+                                <i class="fas fa-check"></i> No hay solicitudes pendientes
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mapa principal -->
+        <div class="col-lg-9">
+            <div class="card">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-globe"></i> Vista General</h5>
+                    <div>
+                        <div class="form-check form-switch d-inline-block me-3">
+                            <input class="form-check-input" type="checkbox" id="autoActualizar" checked>
+                            <label class="form-check-label text-white" for="autoActualizar">
+                                Auto-actualizar
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="mapa" style="height: 600px; border-radius: 0 0 0.375rem 0.375rem;"></div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Controles y leyenda -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-palette"></i> Leyenda</h6>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="bg-success rounded-circle me-2" style="width: 12px; height: 12px;"></div>
+                                        <small>Móviles disponibles</small>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="bg-warning rounded-circle me-2" style="width: 12px; height: 12px;"></div>
+                                        <small>Móviles en servicio</small>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="bg-danger rounded-circle me-2" style="width: 12px; height: 12px;"></div>
+                                        <small>Solicitudes urgentes</small>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="bg-info rounded-circle me-2" style="width: 12px; height: 12px;"></div>
+                                        <small>Servicios activos</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-filter"></i> Filtros de Vista</h6>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="mostrarMoviles" checked>
+                                        <label class="form-check-label" for="mostrarMoviles">
+                                            Mostrar móviles
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="mostrarSolicitudes" checked>
+                                        <label class="form-check-label" for="mostrarSolicitudes">
+                                            Mostrar solicitudes
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="mostrarRutas">
+                                        <label class="form-check-label" for="mostrarRutas">
+                                            Mostrar rutas
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="mostrarZonas">
+                                        <label class="form-check-label" for="mostrarZonas">
+                                           Mostrar localidades
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="mostrarLocalidades">
+                                        <label class="form-check-label" for="mostrarLocalidades">
+                                            Mostrar zonas
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+
+<!-- Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+
+<script>
+class MapaLider {
+    constructor() {
+        this.mapa = null;
+        this.marcadoresMoviles = [];
+        this.marcadoresSolicitudes = [];
+        this.marcadoresServicios = [];
+        this.rutasServicios = [];
+        this.marcadoresLocalidades = [];
+        this.poligonosLocalidades = [];
+        this.autoActualizarInterval = null;
+        this.popupActual = null;
+        this.moviles = [];
+        this.solicitudes = [];
+        this.servicios = [];
+        this.localidades = [];
+        this.localidadesPolygons = [];
+        this.estadisticas = {
+            moviles_disponibles: 0,
+            moviles_ocupadas: 0,
+            solicitudes_pendientes: 0,
+            servicios_activos: 0
+        };
+    }
+    
+    async crearRutasServicios() {
+         if (!this.mapa || !this.servicios) return;
+         
+         // Limpiar rutas existentes
+         this.rutasServicios.forEach(ruta => this.mapa.removeLayer(ruta));
+         this.rutasServicios = [];
+         
+         for (const servicio of this.servicios) {
+             if (servicio.ruta_destino && servicio.ruta_destino.coordinates) {
+                 try {
+                     // Crear polyline con la ruta del servicio
+                     const coordenadas = servicio.ruta_destino.coordinates.map(coord => [coord[1], coord[0]]);
+                     
+                     const ruta = L.polyline(coordenadas, {
+                         color: servicio.estado_color,
+                         weight: 3,
+                         opacity: 0.7,
+                         dashArray: servicio.estado === 'en_ruta' ? '5, 10' : 'none'
+                     }).addTo(this.mapa);
+                     
+                     // Agregar popup a la ruta
+                     ruta.bindPopup(`
+                         <div class="p-2">
+                             <h6 class="mb-1">Ruta de ${servicio.movil_nombre}</h6>
+                             <small>
+                                 <strong>Destino:</strong> ${servicio.tecnico_nombre}<br>
+                                 <strong>Distancia:</strong> ${servicio.ruta_destino.distancia_km} km<br>
+                                 <strong>Tiempo estimado:</strong> ${servicio.ruta_destino.tiempo_min} min
+                             </small>
+                         </div>
+                     `);
+                     
+                     this.rutasServicios.push(ruta);
+                 } catch (error) {
+                     console.error(`Error creando ruta para servicio ${servicio.id}:`, error);
+                 }
+             }
+         }
+     }
+     
+     actualizarEstadisticas() {
+         // Calcular estadísticas en tiempo real
+         this.estadisticas.moviles_disponibles = this.moviles.filter(m => m.estado === 'disponible').length;
+         this.estadisticas.moviles_ocupadas = this.moviles.filter(m => m.estado !== 'disponible').length;
+         this.estadisticas.solicitudes_pendientes = this.solicitudes.filter(s => s.estado === 'pendiente').length;
+         this.estadisticas.servicios_activos = this.servicios.length;
+         
+         // Actualizar elementos del DOM
+         this.actualizarContadoresDOM();
+     }
+     
+     actualizarContadoresDOM() {
+         // Actualizar contadores en la interfaz
+         const elementos = {
+             moviles_activas: this.moviles.length,
+             solicitudes_activas: this.solicitudes.length,
+             servicios_activos: this.servicios.length
+         };
+         
+         // Buscar y actualizar elementos por clase o contenido
+         document.querySelectorAll('.fw-bold').forEach(elemento => {
+             const parent = elemento.closest('.mb-3');
+             if (parent) {
+                 const label = parent.querySelector('.text-muted');
+                 if (label) {
+                     if (label.textContent.includes('Móviles activas')) {
+                         elemento.textContent = elementos.moviles_activas;
+                         elemento.className = 'fw-bold text-success';
+                     } else if (label.textContent.includes('Solicitudes activas')) {
+                         elemento.textContent = elementos.solicitudes_activas;
+                         elemento.className = 'fw-bold text-warning';
+                     } else if (label.textContent.includes('Servicios en curso')) {
+                         elemento.textContent = elementos.servicios_activos;
+                         elemento.className = 'fw-bold text-info';
+                     }
+                 }
+             }
+         });
+     }
+    
+    init() {
+        this.inicializarMapa();
+        this.configurarEventos();
+        this.cargarDatos();
+        this.iniciarAutoActualizacion();
+        this.configurarFiltrosAvanzados();
+    }
+    
+    inicializarMapa() {
+        // Crear el mapa con Leaflet centrado en Bogotá
+        this.mapa = L.map('mapa').setView([4.6097, -74.0817], 11);
+        
+        // Añadir capa de OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(this.mapa);
+        
+        // Configurar eventos del mapa
+        this.configurarEventosMapa();
+    }
+    
+    cargarDatos() {
+        // Cargar móviles activas
+        this.cargarMoviles();
+        
+        // Cargar solicitudes pendientes
+        this.cargarSolicitudes();
+        
+        // Cargar servicios activos
+        this.cargarServicios();
+        
+        // Cargar localidades
+        this.cargarLocalidades();
+        
+        this.actualizarUltimaActualizacion();
+    }
+    
+    async cargarMoviles() {
+        try {
+            const response = await fetch('/lider/api/moviles-tiempo-real');
+            
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+            
+            const data = await response.json();
+            this.moviles = data.moviles || [];
+            
+            console.log('Móviles cargadas en tiempo real:', this.moviles.length);
+            this.crearMarcadoresMoviles();
+            this.actualizarEstadisticas();
+            
+        } catch (error) {
+            console.error('Error cargando móviles:', error);
+            this.moviles = [];
+            this.crearMarcadoresMoviles();
+        }
+    }
+    
+    async cargarSolicitudes() {
+        try {
+            const response = await fetch('/lider/api/solicitudes-tiempo-real');
+            
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+            
+            const data = await response.json();
+            this.solicitudes = data.solicitudes || [];
+            
+            console.log('Solicitudes cargadas en tiempo real:', this.solicitudes.length);
+            this.crearMarcadoresSolicitudes();
+            
+        } catch (error) {
+            console.error('Error cargando solicitudes:', error);
+            this.solicitudes = [];
+            this.crearMarcadoresSolicitudes();
+        }
+    }
+    
+    async cargarServicios() {
+        try {
+            const response = await fetch('/lider/api/servicios-tiempo-real');
+            
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+            
+            const data = await response.json();
+            this.servicios = data.servicios || [];
+            
+            console.log('Servicios cargados en tiempo real:', this.servicios.length);
+            this.crearMarcadoresServicios();
+            this.crearRutasServicios();
+            
+        } catch (error) {
+            console.error('Error cargando servicios:', error);
+            this.servicios = [];
+            this.crearMarcadoresServicios();
+        }
+    }
+    
+    limpiarMarcadores() {
+        // Limpiar marcadores de móviles
+        this.marcadoresMoviles.forEach(marcador => this.mapa.removeLayer(marcador));
+        this.marcadoresMoviles = [];
+        
+        // Limpiar marcadores de solicitudes
+        this.marcadoresSolicitudes.forEach(marcador => this.mapa.removeLayer(marcador));
+        this.marcadoresSolicitudes = [];
+        
+        // Limpiar marcadores de servicios
+        this.marcadoresServicios.forEach(marcador => this.mapa.removeLayer(marcador));
+        this.marcadoresServicios = [];
+        
+        // Limpiar marcadores de localidades
+        this.marcadoresLocalidades.forEach(marcador => this.mapa.removeLayer(marcador));
+        this.marcadoresLocalidades = [];
+        
+        // Limpiar polígonos de localidades
+        this.poligonosLocalidades.forEach(poligono => this.mapa.removeLayer(poligono));
+        this.poligonosLocalidades = [];
+        
+        // Limpiar rutas de servicios
+        this.rutasServicios.forEach(ruta => this.mapa.removeLayer(ruta));
+        this.rutasServicios = [];
+    }
+    
+    crearMarcadoresMoviles() {
+        if (!this.mapa) return;
+        
+        // Limpiar marcadores existentes de móviles
+        this.marcadoresMoviles.forEach(marcador => this.mapa.removeLayer(marcador));
+        this.marcadoresMoviles = [];
+        
+        this.moviles.forEach(movil => {
+            // Crear icono personalizado para móvil
+            const iconoMovil = L.divIcon({
+                html: `<div style="background-color: ${movil.estado_color}; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                         <svg width="18" height="18" fill="white" viewBox="0 0 24 24">
+                           <path d="M20,8h-3V4H3C1.89,4 1,4.89 1,6v12h2c0,1.66 1.34,3 3,3s3-1.34 3-3h6c0,1.66 1.34,3 3,3s3-1.34 3-3h2v-5L20,8zM6,18.5c-0.83,0 -1.5,-0.67 -1.5,-1.5s0.67,-1.5 1.5,-1.5s1.5,0.67 1.5,1.5S6.83,18.5 6,18.5zM18,18.5c-0.83,0 -1.5,-0.67 -1.5,-1.5s0.67,-1.5 1.5,-1.5s1.5,0.67 1.5,1.5S18.83,18.5 18,18.5zM16,8v-2h2.5l1.96,2H16z"/>
+                         </svg>
+                       </div>`,
+                className: 'custom-marker-movil',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+            
+            const marcador = L.marker([movil.coordenadas.lat, movil.coordenadas.lng], {
+                icon: iconoMovil
+            }).addTo(this.mapa);
+            
+            // Añadir popup con información detallada
+            const contenido = `
+                <div class="p-3">
+                    <h6 class="mb-2 fw-bold"><i class="fas fa-truck"></i> ${movil.nombre}</h6>
+                    <div class="small">
+                        <p class="mb-1"><strong>Estado:</strong> <span class="badge" style="background-color: ${movil.estado_color}; color: white;">${movil.estado_texto}</span></p>
+                        <p class="mb-1"><strong>Teléfono:</strong> <a href="tel:${movil.telefono}">${movil.telefono}</a></p>
+                        <p class="mb-1"><strong>Velocidad:</strong> ${movil.velocidad_kmh} km/h</p>
+                        <p class="mb-1"><strong>Dirección:</strong> ${movil.direccion_movimiento}°</p>
+                        ${movil.servicio_actual ? `<p class="mb-1"><strong>Servicio actual:</strong> ${movil.servicio_actual}</p>` : ''}
+                        <p class="mb-0 text-muted"><strong>Última actualización:</strong> ${movil.ultima_actualizacion}</p>
+                    </div>
+                </div>
+            `;
+            
+            marcador.bindPopup(contenido);
+            this.marcadoresMoviles.push(marcador);
+        });
+    }
+    
+    crearMarcadoresSolicitudes() {
+        if (!this.mapa) return;
+        
+        // Limpiar marcadores existentes de solicitudes
+        this.marcadoresSolicitudes.forEach(marcador => this.mapa.removeLayer(marcador));
+        this.marcadoresSolicitudes = [];
+        
+        this.solicitudes.forEach(solicitud => {
+            // Crear icono personalizado para solicitud según prioridad
+            const color = solicitud.prioridad === 'alta' ? '#dc3545' : 
+                         solicitud.prioridad === 'media' ? '#ffc107' : '#6c757d';
+            
+            const iconoSolicitud = L.divIcon({
+                html: `<div style="background-color: ${color}; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                         <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
+                           <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                         </svg>
+                       </div>`,
+                className: 'custom-marker-solicitud',
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
+            });
+            
+            const marcador = L.marker([solicitud.coordenadas.lat, solicitud.coordenadas.lng], {
+                icon: iconoSolicitud
+            }).addTo(this.mapa);
+            
+            // Añadir popup con información detallada
+            const contenido = `
+                <div class="p-3">
+                    <h6 class="mb-2 fw-bold text-danger"><i class="fas fa-exclamation-triangle"></i> Solicitud ${solicitud.tipo_apoyo}</h6>
+                    <div class="small">
+                        <p class="mb-1"><strong>Técnico:</strong> ${solicitud.tecnico_nombre}</p>
+                        <p class="mb-1"><strong>Prioridad:</strong> <span class="badge" style="background-color: ${color}; color: white;">${solicitud.prioridad.toUpperCase()}</span></p>
+                        <p class="mb-1"><strong>Estado:</strong> ${solicitud.estado_texto}</p>
+                        <p class="mb-1"><strong>Tiempo transcurrido:</strong> ${solicitud.tiempo_transcurrido}</p>
+                        <p class="mb-1"><strong>Teléfono:</strong> <a href="tel:${solicitud.telefono}">${solicitud.telefono}</a></p>
+                        ${solicitud.observaciones ? `<p class="mb-1"><strong>Observaciones:</strong> ${solicitud.observaciones}</p>` : ''}
+                        ${solicitud.movil_asignada ? `<p class="mb-1"><strong>Móvil asignada:</strong> ${solicitud.movil_asignada}</p>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            marcador.bindPopup(contenido);
+            this.marcadoresSolicitudes.push(marcador);
+        });
+    }
+    
+    crearMarcadoresServicios() {
+        if (!this.mapa) return;
+        
+        // Limpiar marcadores existentes de servicios
+        this.marcadoresServicios.forEach(marcador => this.mapa.removeLayer(marcador));
+        this.marcadoresServicios = [];
+        
+        this.servicios.forEach(servicio => {
+            // Crear icono personalizado para servicio
+            const iconoServicio = L.divIcon({
+                html: `<div style="background-color: ${servicio.estado_color}; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                         <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
+                           <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11M12,9A1,1 0 0,1 11,8A1,1 0 0,1 12,7A1,1 0 0,1 13,8A1,1 0 0,1 12,9Z"/>
+                         </svg>
+                       </div>`,
+                className: 'custom-marker-servicio',
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
+            });
+            
+            const marcador = L.marker([servicio.coordenadas.lat, servicio.coordenadas.lng], {
+                icon: iconoServicio
+            }).addTo(this.mapa);
+            
+            // Añadir popup con información detallada
+            const contenido = `
+                <div class="p-3">
+                    <h6 class="mb-2 fw-bold text-info"><i class="fas fa-cogs"></i> Servicio Activo</h6>
+                    <div class="small">
+                        <p class="mb-1"><strong>Móvil:</strong> ${servicio.movil_nombre}</p>
+                        <p class="mb-1"><strong>Técnico:</strong> ${servicio.tecnico_nombre}</p>
+                        <p class="mb-1"><strong>Tipo de apoyo:</strong> ${servicio.tipo_apoyo}</p>
+                        <p class="mb-1"><strong>Estado:</strong> <span class="badge" style="background-color: ${servicio.estado_color}; color: white;">${servicio.estado_texto}</span></p>
+                        <p class="mb-1"><strong>Tiempo de servicio:</strong> ${servicio.tiempo_servicio}</p>
+                        <p class="mb-1"><strong>Distancia recorrida:</strong> ${servicio.distancia_recorrida_km} km</p>
+                        ${servicio.observaciones ? `<p class="mb-1"><strong>Observaciones:</strong> ${servicio.observaciones}</p>` : ''}
+                        <p class="mb-0 text-muted"><strong>Inicio:</strong> ${servicio.hora_inicio}</p>
+                    </div>
+                </div>
+            `;
+            
+            marcador.bindPopup(contenido);
+            this.marcadoresServicios.push(marcador);
+        });
+    }
+    
+    async cargarLocalidades() {
+        try {
+            // Cargar centroides para marcadores
+            const responsecentroides = await fetch('/api/localidades/centroides');
+            if (responsecentroides.ok) {
+                const dataCentroides = await responsecentroides.json();
+                this.localidades = dataCentroides.centroides || [];
+            }
+            
+            // Cargar polígonos para límites territoriales
+            const responsePolygons = await fetch('/api/localidades/polygons');
+            if (responsePolygons.ok) {
+                const dataPolygons = await responsePolygons.json();
+                this.localidadesPolygons = dataPolygons.features || [];
+                console.log('Polígonos de localidades cargados:', this.localidadesPolygons.length);
+            }
+            
+            console.log('Localidades cargadas:', this.localidades.length);
+            this.crearMarcadoresLocalidades();
+            this.crearPoligonosLocalidades();
+            
+        } catch (error) {
+            console.error('Error cargando localidades:', error);
+            this.localidades = [];
+            this.localidadesPolygons = [];
+            this.crearMarcadoresLocalidades();
+        }
+    }
+    
+    crearMarcadoresLocalidades() {
+        if (!this.mapa) return;
+        
+        // Limpiar marcadores existentes de localidades
+        this.marcadoresLocalidades.forEach(marcador => this.mapa.removeLayer(marcador));
+        this.marcadoresLocalidades = [];
+        
+        this.localidades.forEach(localidad => {
+            // Crear icono personalizado para localidad
+            const iconoLocalidad = L.divIcon({
+                html: `<div style="background-color: #6f42c1; width: 24px; height: 24px; border-radius: 4px; border: 2px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-size: 10px; color: white; font-weight: bold;">
+                         ${localidad.codigo}
+                       </div>`,
+                className: 'custom-marker-localidad',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+            
+            const marcador = L.marker([localidad.centroide.lat, localidad.centroide.lng], {
+                icon: iconoLocalidad
+            });
+            
+            // Solo agregar al mapa si el filtro está activado
+            const mostrarLocalidades = document.getElementById('mostrarLocalidades').checked;
+            if (mostrarLocalidades) {
+                marcador.addTo(this.mapa);
+            }
+            
+            // Añadir popup con información de la localidad
+            const contenido = `
+                <div class="p-3">
+                    <h6 class="mb-2 fw-bold text-primary"><i class="fas fa-map-marker-alt"></i> ${localidad.nombre}</h6>
+                    <div class="small">
+                        <p class="mb-1"><strong>Código:</strong> ${localidad.codigo}</p>
+                        <p class="mb-1"><strong>Coordenadas:</strong> ${localidad.centroide.lat.toFixed(4)}, ${localidad.centroide.lng.toFixed(4)}</p>
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-primary" onclick="mapaLider.filtrarPorLocalidad('${localidad.codigo}')">
+                                <i class="fas fa-filter"></i> Filtrar por esta localidad
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            marcador.bindPopup(contenido);
+            this.marcadoresLocalidades.push(marcador);
+        });
+    }
+    
+    crearPoligonosLocalidades() {
+        if (!this.mapa || !this.localidadesPolygons) return;
+        
+        // Limpiar polígonos existentes
+        this.poligonosLocalidades.forEach(poligono => this.mapa.removeLayer(poligono));
+        this.poligonosLocalidades = [];
+        
+        this.localidadesPolygons.forEach(feature => {
+            if (feature.geometry && feature.geometry.coordinates) {
+                try {
+                    // Convertir coordenadas de MultiPolygon a formato Leaflet
+                    const coordinates = feature.geometry.coordinates;
+                    const leafletCoords = [];
+                    
+                    // Procesar MultiPolygon
+                    coordinates.forEach(polygon => {
+                        polygon.forEach(ring => {
+                            const ringCoords = ring.map(coord => [coord[1], coord[0]]); // [lng, lat] -> [lat, lng]
+                            leafletCoords.push(ringCoords);
+                        });
+                    });
+                    
+                    // Crear polígono con estilo
+                    const poligono = L.polygon(leafletCoords, {
+                        color: '#6f42c1',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillColor: '#6f42c1',
+                        fillOpacity: 0.1,
+                        dashArray: '5, 5'
+                    });
+                    
+                    // Solo agregar al mapa si el filtro está activado
+                    const mostrarZonas = document.getElementById('mostrarZonas').checked;
+                    if (mostrarZonas) {
+                        poligono.addTo(this.mapa);
+                    }
+                    
+                    // Agregar popup con información de la localidad
+                    const properties = feature.properties || {};
+                    const contenido = `
+                        <div class="p-3">
+                            <h6 class="mb-2 fw-bold text-primary">
+                                <i class="fas fa-map"></i> ${properties.nombre || 'Localidad'}
+                            </h6>
+                            <div class="small">
+                                <p class="mb-1"><strong>Código:</strong> ${properties.codigo || 'N/A'}</p>
+                                <p class="mb-1"><strong>Área:</strong> ${properties.area ? properties.area.toFixed(2) + ' ha' : 'N/A'}</p>
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="mapaLider.filtrarPorLocalidad('${properties.codigo}')">
+                                        <i class="fas fa-filter"></i> Filtrar por esta localidad
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary ms-1" onclick="mapaLider.centrarEnLocalidad('${properties.codigo}')">
+                                        <i class="fas fa-crosshairs"></i> Centrar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    poligono.bindPopup(contenido);
+                    
+                    // Agregar evento de hover
+                    poligono.on('mouseover', function(e) {
+                        this.setStyle({
+                            weight: 3,
+                            fillOpacity: 0.2
+                        });
+                    });
+                    
+                    poligono.on('mouseout', function(e) {
+                        this.setStyle({
+                            weight: 2,
+                            fillOpacity: 0.1
+                        });
+                    });
+                    
+                    this.poligonosLocalidades.push(poligono);
+                    
+                } catch (error) {
+                    console.error('Error creando polígono para localidad:', feature.properties?.nombre, error);
+                }
+            }
+        });
+        
+        console.log('Polígonos de localidades creados:', this.poligonosLocalidades.length);
+    }
+    
+    centrarEnLocalidad(codigo) {
+        // Encontrar el polígono de la localidad y centrar el mapa
+        const localidad = this.localidades.find(loc => loc.codigo === codigo);
+        if (localidad && localidad.centroide) {
+            this.mapa.setView([localidad.centroide.lat, localidad.centroide.lng], 13);
+            this.mostrarNotificacion(`Mapa centrado en ${localidad.nombre}`);
+        }
+    }
+    
+    filtrarPorLocalidad(codigo) {
+        // Implementar filtro por localidad
+        console.log('Filtrando por localidad:', codigo);
+        
+        // Aquí se puede implementar la lógica para filtrar solicitudes y servicios por localidad
+        // Por ejemplo, hacer una nueva consulta a la API con el filtro de localidad
+        this.cargarSolicitudesPorLocalidad(codigo);
+    }
+    
+    async cargarSolicitudesPorLocalidad(codigo) {
+        try {
+            const response = await fetch(`/api/solicitudes/por-localidad/${codigo}`);
+            
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+            
+            const data = await response.json();
+            
+            // Actualizar solicitudes con las filtradas
+            this.solicitudes = data.solicitudes || [];
+            this.crearMarcadoresSolicitudes();
+            
+            // Mostrar notificación
+            this.mostrarNotificacion(`Mostrando ${this.solicitudes.length} solicitudes en ${data.localidad.nombre}`);
+            
+        } catch (error) {
+            console.error('Error cargando solicitudes por localidad:', error);
+            this.mostrarNotificacion('Error al filtrar por localidad', 'error');
+        }
+    }
+    
+    mostrarNotificacion(mensaje, tipo = 'info') {
+        // Crear notificación temporal
+        const notificacion = document.createElement('div');
+        notificacion.className = `alert alert-${tipo === 'error' ? 'danger' : 'info'} position-fixed`;
+        notificacion.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        notificacion.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-${tipo === 'error' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                ${mensaje}
+                <button type="button" class="btn-close ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(notificacion);
+        
+        // Auto-remover después de 5 segundos
+        setTimeout(() => {
+            if (notificacion.parentElement) {
+                notificacion.remove();
+            }
+        }, 5000);
+    }
+    
+    generarMovilesSimuladas() {
+        const moviles = [];
+        const numMoviles = Math.floor(Math.random() * 6) + 3; // 3-8 móviles
+        
+        for (let i = 0; i < numMoviles; i++) {
+            // Generar posiciones aleatorias alrededor de Bogotá
+            const lat = 4.6097 + (Math.random() - 0.5) * 0.3;
+            const lng = -74.0817 + (Math.random() - 0.5) * 0.3;
+            
+            moviles.push({
+                id: i + 1,
+                nombre: `Móvil ${i + 1}`,
+                latitud: lat,
+                longitud: lng,
+                estado: Math.random() > 0.3 ? 'disponible' : 'en_servicio',
+                telefono: `300${Math.floor(Math.random() * 9000000) + 1000000}`,
+                ultima_actualizacion: 'Hace 2 min'
+            });
+        }
+        
+        return moviles;
+    }
+    
+    generarSolicitudesSimuladas() {
+        const solicitudes = [];
+        const numSolicitudes = Math.floor(Math.random() * 4) + 1; // 1-4 solicitudes
+        
+        for (let i = 0; i < numSolicitudes; i++) {
+            const lat = 4.6097 + (Math.random() - 0.5) * 0.3;
+            const lng = -74.0817 + (Math.random() - 0.5) * 0.3;
+            
+            solicitudes.push({
+                id: i + 1,
+                tipo_apoyo: Math.random() > 0.5 ? 'escalera' : 'equipos',
+                latitud: lat,
+                longitud: lng,
+                tecnico_nombre: `Técnico ${i + 1}`,
+                tiempo_transcurrido: `${Math.floor(Math.random() * 60) + 5} min`,
+                observaciones: Math.random() > 0.5 ? 'Apoyo urgente requerido' : ''
+            });
+        }
+        
+        return solicitudes;
+    }
+    
+    generarServiciosSimulados() {
+        const servicios = [];
+        const numServicios = Math.floor(Math.random() * 3) + 1; // 1-3 servicios
+        
+        for (let i = 0; i < numServicios; i++) {
+            const lat = 4.6097 + (Math.random() - 0.5) * 0.3;
+            const lng = -74.0817 + (Math.random() - 0.5) * 0.3;
+            
+            servicios.push({
+                id: i + 1,
+                latitud: lat,
+                longitud: lng,
+                movil_nombre: `Móvil ${i + 1}`,
+                tecnico_nombre: `Técnico ${i + 1}`,
+                tiempo_servicio: `${Math.floor(Math.random() * 45) + 15} min`,
+                estado: 'en_sitio'
+            });
+        }
+        
+        return servicios;
+    }
+    
+    configurarEventos() {
+        // Botón actualizar
+        document.getElementById('actualizarMapa').addEventListener('click', () => {
+            this.actualizarMapa();
+        });
+        
+        // Auto-actualizar toggle
+        document.getElementById('autoActualizar').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                this.iniciarAutoActualizacion();
+            } else {
+                this.detenerAutoActualizacion();
+            }
+        });
+        
+        // Filtros de vista
+        ['mostrarMoviles', 'mostrarSolicitudes', 'mostrarRutas', 'mostrarZonas', 'mostrarLocalidades'].forEach(id => {
+            document.getElementById(id).addEventListener('change', () => {
+                this.aplicarFiltros();
+            });
+        });
+    }
+    
+    configurarEventosMapa() {
+        if (!this.mapa) return;
+        
+        // Evento de click en el mapa
+        this.mapa.on('click', (event) => {
+            this.mapa.closePopup();
+        });
+    }
+    
+    actualizarMapa() {
+        console.log('Actualizando mapa general...');
+        this.cargarDatos();
+    }
+    
+    aplicarFiltros() {
+        const filtros = {
+            moviles: document.getElementById('mostrarMoviles').checked,
+            solicitudes: document.getElementById('mostrarSolicitudes').checked,
+            rutas: document.getElementById('mostrarRutas').checked,
+            zonas: document.getElementById('mostrarZonas').checked,
+            localidades: document.getElementById('mostrarLocalidades').checked
+        };
+        
+        // Mostrar/ocultar marcadores según filtros
+        this.marcadoresMoviles.forEach(marcador => {
+            if (filtros.moviles) {
+                this.mapa.addLayer(marcador);
+            } else {
+                this.mapa.removeLayer(marcador);
+            }
+        });
+        
+        this.marcadoresSolicitudes.forEach(marcador => {
+            if (filtros.solicitudes) {
+                this.mapa.addLayer(marcador);
+            } else {
+                this.mapa.removeLayer(marcador);
+            }
+        });
+        
+        this.marcadoresServicios.forEach(marcador => {
+            if (filtros.solicitudes) { // Los servicios se muestran con solicitudes
+                this.mapa.addLayer(marcador);
+            } else {
+                this.mapa.removeLayer(marcador);
+            }
+        });
+        
+        this.marcadoresLocalidades.forEach(marcador => {
+            if (filtros.localidades) {
+                this.mapa.addLayer(marcador);
+            } else {
+                this.mapa.removeLayer(marcador);
+            }
+        });
+        
+        // Mostrar/ocultar polígonos de localidades
+        this.poligonosLocalidades.forEach(poligono => {
+            if (filtros.zonas) {
+                this.mapa.addLayer(poligono);
+            } else {
+                this.mapa.removeLayer(poligono);
+            }
+        });
+        
+        // Mostrar/ocultar rutas de servicios
+        this.rutasServicios.forEach(ruta => {
+            if (filtros.rutas) {
+                this.mapa.addLayer(ruta);
+            } else {
+                this.mapa.removeLayer(ruta);
+            }
+        });
+        
+        console.log('Filtros aplicados:', filtros);
+    }
+    
+    actualizarUltimaActualizacion() {
+        const ahora = new Date();
+        document.getElementById('ultimaActualizacion').textContent = 
+            ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    iniciarAutoActualizacion() {
+        this.detenerAutoActualizacion();
+        this.autoActualizarInterval = setInterval(() => {
+            console.log('Auto-actualizando mapa líder en tiempo real...');
+            this.actualizarMapa();
+        }, 15000); // 15 segundos para tracking más frecuente
+    }
+    
+    configurarFiltrosAvanzados() {
+        // Agregar eventos para filtros avanzados
+        const filtroRutas = document.getElementById('mostrarRutas');
+        if (filtroRutas) {
+            filtroRutas.addEventListener('change', () => {
+                this.aplicarFiltroRutas();
+            });
+        }
+    }
+    
+    aplicarFiltroRutas() {
+        const mostrarRutas = document.getElementById('mostrarRutas').checked;
+        
+        this.rutasServicios.forEach(ruta => {
+            if (mostrarRutas) {
+                this.mapa.addLayer(ruta);
+            } else {
+                this.mapa.removeLayer(ruta);
+            }
+        });
+    }
+    
+    detenerAutoActualizacion() {
+        if (this.autoActualizarInterval) {
+            clearInterval(this.autoActualizarInterval);
+            this.autoActualizarInterval = null;
+        }
+    }
+}
+
+// Variable global para la instancia del mapa
+let mapaLider;
+
+// Inicializar cuando se carga la página
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar si Leaflet está cargado
+    if (typeof L !== 'undefined') {
+        mapaLider = new MapaLider();
+        mapaLider.init();
+    } else {
+        console.error('Leaflet no se pudo cargar');
+        // Mostrar mensaje de error en el mapa
+        document.getElementById('mapa').innerHTML = `
+            <div class="d-flex align-items-center justify-content-center h-100 bg-light">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5 class="text-muted">Error cargando el mapa</h5>
+                    <p class="text-muted">Por favor, verifica tu conexión a internet</p>
+                    <button class="btn btn-primary" onclick="location.reload()">Reintentar</button>
+                </div>
+            </div>
+        `;
+    }
+});
+
+// Simular actualizaciones en tiempo real de los contadores
+setInterval(() => {
+    const elementos = document.querySelectorAll('.fw-bold');
+    elementos.forEach(elemento => {
+        if (elemento.textContent.match(/^\d+$/)) {
+            const valor = parseInt(elemento.textContent);
+            const cambio = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
+            const nuevoValor = Math.max(0, valor + cambio);
+            if (nuevoValor !== valor) {
+                elemento.textContent = nuevoValor;
+                elemento.style.transition = 'color 0.3s';
+                elemento.style.color = '#007bff';
+                setTimeout(() => {
+                    elemento.style.color = '';
+                }, 300);
+            }
+        }
+    });
+}, 15000); // Cada 15 segundos
+</script>
+{% endblock %}

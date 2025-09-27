@@ -1,0 +1,624 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Usuarios - Synapsis Apoyos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-users text-primary"></i> Gestión de Usuarios</h2>
+                <div>
+                    <button class="btn btn-success me-2" onclick="nuevoUsuario()">
+                        <i class="fas fa-plus"></i> Nuevo Usuario
+                    </button>
+                    <a href="{{ url_for('lider.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas de usuarios -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ total_usuarios }}</h4>
+                            <p class="mb-0">Total Usuarios</p>
+                        </div>
+                        <i class="fas fa-users fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ usuarios_activos }}</h4>
+                            <p class="mb-0">Usuarios Activos</p>
+                        </div>
+                        <i class="fas fa-user-check fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ tecnicos_count }}</h4>
+                            <p class="mb-0">Técnicos</p>
+                        </div>
+                        <i class="fas fa-hard-hat fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="mb-0">{{ moviles_count }}</h4>
+                            <p class="mb-0">Móviles</p>
+                        </div>
+                        <i class="fas fa-car fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="rol" class="form-label">Rol</label>
+                            <select class="form-select" id="rol" name="rol">
+                                <option value="todos" {{ 'selected' if rol_filtro == 'todos' else '' }}>Todos los roles</option>
+                                <option value="tecnico" {{ 'selected' if rol_filtro == 'tecnico' else '' }}>Técnicos</option>
+                                <option value="movil" {{ 'selected' if rol_filtro == 'movil' else '' }}>Móviles</option>
+                                <option value="lider" {{ 'selected' if rol_filtro == 'lider' else '' }}>Líderes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="estado" class="form-label">Estado</label>
+                            <select class="form-select" id="estado" name="estado">
+                                <option value="todos" {{ 'selected' if estado_filtro == 'todos' else '' }}>Todos</option>
+                                <option value="activo" {{ 'selected' if estado_filtro == 'activo' else '' }}>Activos</option>
+                                <option value="inactivo" {{ 'selected' if estado_filtro == 'inactivo' else '' }}>Inactivos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="buscar" class="form-label">Buscar</label>
+                            <input type="text" class="form-control" id="buscar" name="buscar" 
+                                   placeholder="Nombre, email o teléfono" value="{{ buscar_filtro or '' }}">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i> Buscar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de usuarios -->
+    <div class="row">
+        <div class="col-12">
+            {% if usuarios.items %}
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Rol</th>
+                                        <th>Contacto</th>
+                                        <th>Estado</th>
+                                        <th>Último Acceso</th>
+                                        <th>Estadísticas</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for usuario in usuarios.items %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle me-3">
+                                                    <i class="fas fa-{{ 'hard-hat' if usuario.rol == 'tecnico' else 'car' if usuario.rol == 'movil' else 'crown' }}"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">{{ usuario.nombre }} {{ usuario.apellido }}</h6>
+                                                    <small class="text-muted">ID: {{ usuario.id }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ 
+                                                'primary' if usuario.rol == 'tecnico' else
+                                                'info' if usuario.rol == 'movil' else
+                                                'warning' if usuario.rol == 'lider' else
+                                                'secondary'
+                                            }}">{{ usuario.rol.title() }}</span>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <small class="d-block">
+                                                    <i class="fas fa-envelope"></i> {{ usuario.email }}
+                                                </small>
+                                                {% if usuario.telefono %}
+                                                <small class="d-block text-muted">
+                                                    <i class="fas fa-phone"></i> {{ usuario.telefono }}
+                                                </small>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" 
+                                                       id="activo_{{ usuario.id }}" 
+                                                       {{ 'checked' if usuario.activo else '' }}
+                                                       onchange="toggleUsuarioActivo({{ usuario.id }}, this.checked)">
+                                                <label class="form-check-label" for="activo_{{ usuario.id }}">
+                                                    {{ 'Activo' if usuario.activo else 'Inactivo' }}
+                                                </label>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if usuario.ultimo_acceso %}
+                                                <small>{{ usuario.ultimo_acceso.strftime('%d/%m/%Y') }}</small><br>
+                                                <small class="text-muted">{{ usuario.ultimo_acceso.strftime('%H:%M') }}</small>
+                                            {% else %}
+                                                <small class="text-muted">Nunca</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if usuario.rol == 'tecnico' %}
+                                                <small class="d-block">Solicitudes: {{ usuario.solicitudes|length }}</small>
+                                                <small class="text-muted">Activas: {{ usuario.solicitudes|selectattr('estado', 'equalto', 'pendiente')|list|length }}</small>
+                                            {% elif usuario.rol == 'movil' %}
+                                                <small class="d-block">Servicios: {{ usuario.servicios|length }}</small>
+                                                <small class="text-muted">Completados: {{ usuario.servicios|selectattr('estado', 'equalto', 'completado')|list|length }}</small>
+                                            {% else %}
+                                                <small class="text-muted">-</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-info" 
+                                                        onclick="verPerfilUsuario({{ usuario.id }})" 
+                                                        title="Ver perfil">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                        onclick="editarUsuario({{ usuario.id }})" 
+                                                        title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                {% if usuario.rol in ['tecnico', 'movil'] %}
+                                                <button class="btn btn-sm btn-outline-success" 
+                                                        onclick="verEstadisticas({{ usuario.id }})" 
+                                                        title="Estadísticas">
+                                                    <i class="fas fa-chart-bar"></i>
+                                                </button>
+                                                {% endif %}
+                                                <button class="btn btn-sm btn-outline-warning" 
+                                                        onclick="resetearPassword({{ usuario.id }})" 
+                                                        title="Resetear contraseña">
+                                                    <i class="fas fa-key"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Paginación -->
+                {% if usuarios.pages > 1 %}
+                <nav aria-label="Paginación de usuarios" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if usuarios.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('lider.usuarios', page=usuarios.prev_num, rol=rol_filtro, estado=estado_filtro, buscar=buscar_filtro) }}">
+                                <i class="fas fa-chevron-left"></i> Anterior
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for page_num in usuarios.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != usuarios.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('lider.usuarios', page=page_num, rol=rol_filtro, estado=estado_filtro, buscar=buscar_filtro) }}">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% endif %}
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if usuarios.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('lider.usuarios', page=usuarios.next_num, rol=rol_filtro, estado=estado_filtro, buscar=buscar_filtro) }}">
+                                Siguiente <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No se encontraron usuarios</h4>
+                    <p class="text-muted">No hay usuarios que coincidan con los filtros seleccionados.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para nuevo/editar usuario -->
+<div class="modal fade" id="usuarioModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="usuarioModalTitle">Nuevo Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="usuarioForm">
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="apellido" class="form-label">Apellido *</label>
+                        <input type="text" class="form-control" id="apellido" name="apellido" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email *</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="telefono" class="form-label">Teléfono</label>
+                        <input type="tel" class="form-control" id="telefono" name="telefono">
+                    </div>
+                    <div class="mb-3">
+                        <label for="rol" class="form-label">Rol *</label>
+                        <select class="form-select" id="rol" name="rol" required>
+                            <option value="">Seleccionar rol</option>
+                            <option value="tecnico">Técnico</option>
+                            <option value="movil">Móvil</option>
+                            <option value="lider">Líder</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="passwordGroup">
+                        <label for="password" class="form-label">Contraseña *</label>
+                        <input type="password" class="form-control" id="password" name="password">
+                        <div class="form-text">Mínimo 6 caracteres</div>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="activo" name="activo" checked>
+                        <label class="form-check-label" for="activo">
+                            Usuario activo
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarUsuario()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para perfil de usuario -->
+<div class="modal fade" id="perfilModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Perfil de Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="perfilContent">
+                <!-- Contenido se carga dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #dee2e6;
+}
+
+.avatar-circle i {
+    color: #6c757d;
+}
+</style>
+
+<script>
+let editandoUsuario = null;
+
+function nuevoUsuario() {
+    editandoUsuario = null;
+    document.getElementById('usuarioModalTitle').textContent = 'Nuevo Usuario';
+    document.getElementById('usuarioForm').reset();
+    document.getElementById('passwordGroup').style.display = 'block';
+    document.getElementById('password').required = true;
+    
+    const modal = new bootstrap.Modal(document.getElementById('usuarioModal'));
+    modal.show();
+}
+
+function editarUsuario(usuarioId) {
+    // Obtener datos del usuario
+    fetch(`/lider/usuario/${usuarioId}/perfil`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const usuario = data.usuario;
+                
+                editandoUsuario = usuarioId;
+                document.getElementById('usuarioModalTitle').textContent = 'Editar Usuario';
+                document.getElementById('passwordGroup').style.display = 'none';
+                document.getElementById('password').required = false;
+                
+                // Llenar el formulario con los datos del usuario
+                document.getElementById('nombre').value = usuario.nombre;
+                document.getElementById('apellido').value = usuario.apellido;
+                document.getElementById('email').value = usuario.email;
+                document.getElementById('telefono').value = usuario.telefono || '';
+                document.getElementById('rol').value = usuario.rol;
+                document.getElementById('activo').checked = usuario.activo;
+                
+                const modal = new bootstrap.Modal(document.getElementById('usuarioModal'));
+                modal.show();
+            } else {
+                mostrarAlerta('Error obteniendo datos del usuario: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            mostrarAlerta('Error de conexión', 'danger');
+        });
+}
+
+function guardarUsuario() {
+    const form = document.getElementById('usuarioForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const datos = Object.fromEntries(formData.entries());
+    
+    // Agregar el checkbox activo si no está marcado
+    if (!datos.activo) {
+        datos.activo = false;
+    } else {
+        datos.activo = true;
+    }
+    
+    const url = editandoUsuario ? `/lider/usuario/${editandoUsuario}/editar` : '/lider/usuario/crear';
+    const metodo = 'POST';
+    
+    fetch(url, {
+        method: metodo,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(datos)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarAlerta(data.message, 'success');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('usuarioModal'));
+            modal.hide();
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            mostrarAlerta('Error: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mostrarAlerta('Error de conexión', 'danger');
+    });
+}
+
+function verPerfilUsuario(usuarioId) {
+    fetch(`/lider/usuario/${usuarioId}/perfil`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const usuario = data.usuario;
+                const estadisticas = data.estadisticas || {};
+                
+                let content = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Información Personal</h6>
+                            <p><strong>Nombre:</strong> ${usuario.nombre} ${usuario.apellido}</p>
+                            <p><strong>Email:</strong> ${usuario.email}</p>
+                            <p><strong>Teléfono:</strong> ${usuario.telefono || 'No disponible'}</p>
+                            <p><strong>Rol:</strong> ${usuario.rol.charAt(0).toUpperCase() + usuario.rol.slice(1)}</p>
+                            <p><strong>Estado:</strong> <span class="badge bg-${usuario.activo ? 'success' : 'danger'}">${usuario.activo ? 'Activo' : 'Inactivo'}</span></p>
+                            <p><strong>Último acceso:</strong> ${usuario.ultimo_acceso ? new Date(usuario.ultimo_acceso).toLocaleString('es-CO') : 'Nunca'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Estadísticas</h6>
+                `;
+                
+                if (usuario.rol === 'tecnico') {
+                    content += `
+                        <p><strong>Total solicitudes:</strong> ${estadisticas.total_solicitudes || 0}</p>
+                        <p><strong>Solicitudes aceptadas:</strong> ${estadisticas.solicitudes_aceptadas || 0}</p>
+                        <p><strong>Tasa de aceptación:</strong> ${estadisticas.tasa_aceptacion || 0}%</p>
+                    `;
+                } else if (usuario.rol === 'movil') {
+                    content += `
+                        <p><strong>Total servicios:</strong> ${estadisticas.total_servicios || 0}</p>
+                        <p><strong>Servicios completados:</strong> ${estadisticas.servicios_completados || 0}</p>
+                        <p><strong>Tasa de completación:</strong> ${estadisticas.tasa_completacion || 0}%</p>
+                    `;
+                } else {
+                    content += '<p>No hay estadísticas disponibles para este rol</p>';
+                }
+                
+                content += `
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('perfilContent').innerHTML = content;
+                const modal = new bootstrap.Modal(document.getElementById('perfilModal'));
+                modal.show();
+            } else {
+                mostrarAlerta('Error obteniendo perfil: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            mostrarAlerta('Error de conexión', 'danger');
+        });
+}
+
+function verEstadisticas(usuarioId) {
+    // Reutilizar la función de ver perfil que ya incluye estadísticas
+    verPerfilUsuario(usuarioId);
+}
+
+function resetearPassword(usuarioId) {
+    if (confirm('¿Está seguro de que desea resetear la contraseña de este usuario?')) {
+        fetch(`/lider/usuario/${usuarioId}/resetear-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                mostrarAlerta(`${data.message}. Nueva contraseña: ${data.nueva_password}`, 'success');
+            } else {
+                mostrarAlerta('Error: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            mostrarAlerta('Error de conexión', 'danger');
+        });
+    }
+}
+
+function mostrarAlerta(mensaje, tipo) {
+    const alertaDiv = document.createElement('div');
+    alertaDiv.className = `alert alert-${tipo} alert-dismissible fade show`;
+    alertaDiv.innerHTML = `
+        ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Insertar al inicio del contenido principal
+    const contenido = document.querySelector('.container-fluid');
+    contenido.insertBefore(alertaDiv, contenido.firstChild);
+    
+    // Auto-ocultar después de 5 segundos
+    setTimeout(() => {
+        if (alertaDiv.parentNode) {
+            alertaDiv.remove();
+        }
+    }, 5000);
+}
+
+function toggleUsuarioActivo(usuarioId, activo) {
+    const accion = activo ? 'activar' : 'desactivar';
+    if (confirm(`¿Está seguro de que desea ${accion} este usuario?`)) {
+        // Deshabilitar el switch mientras se procesa
+        const switchElement = document.getElementById(`activo_${usuarioId}`);
+        const labelElement = document.querySelector(`label[for="activo_${usuarioId}"]`);
+        switchElement.disabled = true;
+        
+        // Hacer llamada AJAX al backend
+        fetch(`/lider/usuario/${usuarioId}/toggle-activo`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // Actualizar la etiqueta del switch
+                labelElement.textContent = activo ? 'Activo' : 'Inactivo';
+                
+                // Mostrar mensaje de éxito
+                mostrarAlerta(`Usuario #${usuarioId} ${activo ? 'activado' : 'desactivado'} correctamente.`, 'success');
+                
+                // Recargar la página después de un breve delay para mostrar cambios
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                throw new Error('Error en la respuesta del servidor');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Revertir el cambio en caso de error
+            switchElement.checked = !activo;
+            labelElement.textContent = !activo ? 'Activo' : 'Inactivo';
+            mostrarAlerta('Error al actualizar el estado del usuario. Inténtelo de nuevo.', 'error');
+        })
+        .finally(() => {
+            // Rehabilitar el switch
+            switchElement.disabled = false;
+        });
+    } else {
+        // Revertir el cambio si se cancela
+        document.getElementById(`activo_${usuarioId}`).checked = !activo;
+    }
+}
+</script>
+{% endblock %}

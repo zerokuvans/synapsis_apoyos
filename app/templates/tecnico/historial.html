@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Historial de Solicitudes - Synapsis Apoyos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-history text-primary"></i> Historial de Solicitudes</h2>
+                <div>
+                    <a href="{{ url_for('tecnico.nueva_solicitud') }}" class="btn btn-primary me-2">
+                        <i class="fas fa-plus"></i> Nueva Solicitud
+                    </a>
+                    <a href="{{ url_for('tecnico.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="estado" class="form-label">Filtrar por Estado</label>
+                            <select class="form-select" id="estado" name="estado" onchange="this.form.submit()">
+                                <option value="todas" {{ 'selected' if estado_filtro == 'todas' else '' }}>Todas</option>
+                                <option value="pendiente" {{ 'selected' if estado_filtro == 'pendiente' else '' }}>Pendientes</option>
+                                <option value="aceptada" {{ 'selected' if estado_filtro == 'aceptada' else '' }}>Aceptadas</option>
+                                <option value="completada" {{ 'selected' if estado_filtro == 'completada' else '' }}>Completadas</option>
+                                <option value="rechazada" {{ 'selected' if estado_filtro == 'rechazada' else '' }}>Rechazadas</option>
+                                <option value="cancelada" {{ 'selected' if estado_filtro == 'cancelada' else '' }}>Canceladas</option>
+                                <option value="expirada" {{ 'selected' if estado_filtro == 'expirada' else '' }}>Expiradas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8 d-flex align-items-end">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="fas fa-filter"></i> Filtrar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Solicitudes -->
+    <div class="row">
+        <div class="col-12">
+            {% if solicitudes.items %}
+                {% for solicitud in solicitudes.items %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-center mb-2">
+                                    <h5 class="card-title mb-0 me-3">
+                                        <i class="fas fa-{{ 'ladder' if solicitud.tipo_apoyo == 'escalera' else 'tools' }}"></i>
+                                        Apoyo de {{ solicitud.tipo_apoyo.title() }}
+                                    </h5>
+                                    <span class="badge bg-{{ 
+                                        'warning' if solicitud.estado == 'pendiente' else
+                                        'success' if solicitud.estado == 'aceptada' else
+                                        'primary' if solicitud.estado == 'completada' else
+                                        'danger' if solicitud.estado == 'rechazada' else
+                                        'secondary' if solicitud.estado == 'cancelada' else
+                                        'dark'
+                                    }}">{{ solicitud.estado.title() }}</span>
+                                </div>
+                                
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar"></i> 
+                                        {{ solicitud.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                    </small>
+                                </p>
+                                
+                                {% if solicitud.direccion %}
+                                <p class="card-text">
+                                    <i class="fas fa-map-marker-alt text-primary"></i> 
+                                    {{ solicitud.direccion }}
+                                </p>
+                                {% endif %}
+                                
+                                {% if solicitud.observaciones %}
+                                <p class="card-text">
+                                    <strong>Observaciones:</strong> {{ solicitud.observaciones }}
+                                </p>
+                                {% endif %}
+                                
+                                <!-- Información del servicio si existe -->
+                                {% if solicitud.servicio %}
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        {% if solicitud.servicio.aceptado_at %}
+                                        <i class="fas fa-check"></i> Aceptado: {{ solicitud.servicio.aceptado_at.strftime('%d/%m/%Y %H:%M') }}<br>
+                                        {% endif %}
+                                        {% if solicitud.servicio.iniciado_at %}
+                                        <i class="fas fa-play"></i> Iniciado: {{ solicitud.servicio.iniciado_at.strftime('%d/%m/%Y %H:%M') }}<br>
+                                        {% endif %}
+                                        {% if solicitud.servicio.finalizado_at %}
+                                        <i class="fas fa-stop"></i> Finalizado: {{ solicitud.servicio.finalizado_at.strftime('%d/%m/%Y %H:%M') }}<br>
+                                        {% endif %}
+                                        {% if solicitud.servicio.duracion_minutos %}
+                                        <i class="fas fa-clock"></i> Duración: {{ solicitud.servicio.duracion_minutos }} minutos
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 text-end">
+                                <div class="mb-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-map"></i> 
+                                        {{ "%.6f"|format(solicitud.latitud) }}, {{ "%.6f"|format(solicitud.longitud) }}
+                                    </small>
+                                </div>
+                                
+                                {% if solicitud.estado == 'pendiente' %}
+                                <button class="btn btn-sm btn-outline-danger" 
+                                        onclick="cancelarSolicitud({{ solicitud.id }})">
+                                    <i class="fas fa-times"></i> Cancelar
+                                </button>
+                                {% endif %}
+                                
+                                <button class="btn btn-sm btn-outline-info" 
+                                        onclick="verDetalles({{ solicitud.id }})">
+                                    <i class="fas fa-eye"></i> Ver Detalles
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <!-- Paginación -->
+                {% if solicitudes.pages > 1 %}
+                <nav aria-label="Paginación de solicitudes">
+                    <ul class="pagination justify-content-center">
+                        {% if solicitudes.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('tecnico.historial', page=solicitudes.prev_num, estado=estado_filtro) }}">
+                                <i class="fas fa-chevron-left"></i> Anterior
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for page_num in solicitudes.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != solicitudes.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('tecnico.historial', page=page_num, estado=estado_filtro) }}">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% endif %}
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if solicitudes.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('tecnico.historial', page=solicitudes.next_num, estado=estado_filtro) }}">
+                                Siguiente <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No hay solicitudes</h4>
+                    <p class="text-muted">No se encontraron solicitudes con los filtros seleccionados.</p>
+                    <a href="{{ url_for('tecnico.nueva_solicitud') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Crear Primera Solicitud
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para cancelar solicitud -->
+<div class="modal fade" id="cancelarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancelar Solicitud</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="cancelarForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="observaciones_cancelacion" class="form-label">Motivo de cancelación *</label>
+                        <textarea class="form-control" id="observaciones_cancelacion" name="observaciones" 
+                                  rows="3" required placeholder="Describe el motivo de la cancelación..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn btn-danger">Cancelar Solicitud</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function cancelarSolicitud(solicitudId) {
+    const form = document.getElementById('cancelarForm');
+    form.action = `/tecnico/solicitud/${solicitudId}/cancelar`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('cancelarModal'));
+    modal.show();
+}
+
+function verDetalles(solicitudId) {
+    // Aquí se puede implementar un modal con más detalles
+    // Por ahora, simplemente mostramos una alerta
+    alert(`Ver detalles de la solicitud ${solicitudId}`);
+}
+</script>
+{% endblock %}

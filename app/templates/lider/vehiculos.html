@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Vehículos - Synapsis Apoyos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-car me-2"></i>Gestión de Vehículos
+                    </h4>
+                    <a href="{{ url_for('lider.nuevo_vehiculo') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Nuevo Vehículo
+                    </a>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Filtros -->
+                    <form method="GET" class="mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="search" class="form-label">Buscar</label>
+                                <input type="text" class="form-control" id="search" name="search" 
+                                       value="{{ search }}" placeholder="Placa, marca o modelo...">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="tipo_vehiculo" class="form-label">Tipo de Vehículo</label>
+                                <select class="form-select" id="tipo_vehiculo" name="tipo_vehiculo">
+                                    <option value="">Todos los tipos</option>
+                                    <option value="moto" {{ 'selected' if tipo_vehiculo == 'moto' }}>Moto</option>
+                                    <option value="carro" {{ 'selected' if tipo_vehiculo == 'carro' }}>Carro</option>
+                                    <option value="camioneta" {{ 'selected' if tipo_vehiculo == 'camioneta' }}>Camioneta</option>
+                                    <option value="furgon" {{ 'selected' if tipo_vehiculo == 'furgon' }}>Furgón</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="estado_asignacion" class="form-label">Estado de Asignación</label>
+                                <select class="form-select" id="estado_asignacion" name="estado_asignacion">
+                                    <option value="">Todos</option>
+                                    <option value="asignado" {{ 'selected' if estado_asignacion == 'asignado' }}>Asignados</option>
+                                    <option value="sin_asignar" {{ 'selected' if estado_asignacion == 'sin_asignar' }}>Sin asignar</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-outline-primary me-2">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                                <a href="{{ url_for('lider.vehiculos') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Tabla de vehículos -->
+                    {% if vehiculos.items %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Placa</th>
+                                    <th>Vehículo</th>
+                                    <th>Tipo</th>
+                                    <th>Color</th>
+                                    <th>Combustible</th>
+                                    <th>Móvil Asignado</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vehiculo in vehiculos.items %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ vehiculo.placa }}</strong>
+                                    </td>
+                                    <td>
+                                        {{ vehiculo.marca }} {{ vehiculo.modelo }}<br>
+                                        <small class="text-muted">{{ vehiculo.año }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            {{ vehiculo.tipo_vehiculo.title() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ vehiculo.color }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ vehiculo.combustible.title() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if vehiculo.movil %}
+                                            <span class="badge bg-success">
+                                                {{ vehiculo.get_movil_asignado() }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Sin asignar</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if vehiculo.activo %}
+                                            <span class="badge bg-success">Activo</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <!-- Botón de editar -->
+                                            <a href="{{ url_for('lider.editar_vehiculo', vehiculo_id=vehiculo.id) }}" 
+                                               class="btn btn-sm btn-outline-primary" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            
+                                            <!-- Botón de asignar/desasignar -->
+                                            {% if vehiculo.movil %}
+                                                <button type="button" class="btn btn-sm btn-outline-warning" 
+                                                        onclick="desasignarVehiculo({{ vehiculo.id }}, '{{ vehiculo.placa }}')" 
+                                                        title="Desasignar móvil">
+                                                    <i class="fas fa-user-times"></i>
+                                                </button>
+                                            {% else %}
+                                                <button type="button" class="btn btn-sm btn-outline-success" 
+                                                        onclick="mostrarModalAsignar({{ vehiculo.id }}, '{{ vehiculo.placa }}')" 
+                                                        title="Asignar móvil">
+                                                    <i class="fas fa-user-plus"></i>
+                                                </button>
+                                            {% endif %}
+                                            
+                                            <!-- Botón de eliminar -->
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    onclick="eliminarVehiculo({{ vehiculo.id }}, '{{ vehiculo.placa }}')" 
+                                                    title="Eliminar">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Paginación -->
+                    {% if vehiculos.pages > 1 %}
+                    <nav aria-label="Paginación de vehículos">
+                        <ul class="pagination justify-content-center">
+                            {% if vehiculos.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('lider.vehiculos', page=vehiculos.prev_num, search=search, tipo_vehiculo=tipo_vehiculo, estado_asignacion=estado_asignacion) }}">
+                                        Anterior
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page_num in vehiculos.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != vehiculos.page %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('lider.vehiculos', page=page_num, search=search, tipo_vehiculo=tipo_vehiculo, estado_asignacion=estado_asignacion) }}">
+                                                {{ page_num }}
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">…</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if vehiculos.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('lider.vehiculos', page=vehiculos.next_num, search=search, tipo_vehiculo=tipo_vehiculo, estado_asignacion=estado_asignacion) }}">
+                                        Siguiente
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-car fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No se encontraron vehículos</h5>
+                        <p class="text-muted">No hay vehículos que coincidan con los filtros aplicados.</p>
+                        <a href="{{ url_for('lider.nuevo_vehiculo') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>Crear Primer Vehículo
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para asignar móvil -->
+<div class="modal fade" id="modalAsignar" tabindex="-1" aria-labelledby="modalAsignarLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalAsignarLabel">Asignar Móvil a Vehículo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formAsignar" method="POST">
+                <div class="modal-body">
+                    <p>Seleccione el móvil que desea asignar al vehículo <strong id="placaAsignar"></strong>:</p>
+                    <div class="mb-3">
+                        <label for="movil_id" class="form-label">Móvil</label>
+                        <select class="form-select" id="movil_id" name="movil_id" required>
+                            <option value="">Seleccione un móvil...</option>
+                            {% for movil in moviles_disponibles %}
+                            <option value="{{ movil.id }}">{{ movil.get_nombre_completo() }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Asignar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Formularios ocultos para acciones -->
+<form id="formDesasignar" method="POST" style="display: none;">
+</form>
+
+<form id="formEliminar" method="POST" style="display: none;">
+</form>
+
+<script>
+function mostrarModalAsignar(vehiculoId, placa) {
+    document.getElementById('placaAsignar').textContent = placa;
+    document.getElementById('formAsignar').action = `/lider/vehiculos/${vehiculoId}/asignar`;
+    new bootstrap.Modal(document.getElementById('modalAsignar')).show();
+}
+
+function desasignarVehiculo(vehiculoId, placa) {
+    if (confirm(`¿Está seguro de que desea desasignar el móvil del vehículo ${placa}?`)) {
+        const form = document.getElementById('formDesasignar');
+        form.action = `/lider/vehiculos/${vehiculoId}/desasignar`;
+        form.submit();
+    }
+}
+
+function eliminarVehiculo(vehiculoId, placa) {
+    if (confirm(`¿Está seguro de que desea eliminar el vehículo ${placa}? Esta acción no se puede deshacer.`)) {
+        const form = document.getElementById('formEliminar');
+        form.action = `/lider/vehiculos/${vehiculoId}/eliminar`;
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

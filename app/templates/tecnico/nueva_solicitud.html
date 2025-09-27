@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Solicitud - Synapsis Apoyos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-plus-circle text-primary"></i> Nueva Solicitud de Apoyo</h2>
+                <a href="{{ url_for('tecnico.dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-clipboard-list"></i> Detalles de la Solicitud</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('tecnico.crear_solicitud') }}" method="POST" id="solicitudForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="tipo_apoyo" class="form-label">Tipo de Apoyo *</label>
+                                    <select class="form-select" id="tipo_apoyo" name="tipo_apoyo" required>
+                                        <option value="">Seleccionar tipo de apoyo</option>
+                                        <option value="escalera">Escalera</option>
+                                        <option value="equipos">Equipos</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="direccion" class="form-label">Dirección</label>
+                                    <input type="text" class="form-control" id="direccion" name="direccion" 
+                                           placeholder="Ej: Calle 123 #45-67">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="latitud" class="form-label">Latitud *</label>
+                                    <input type="number" step="any" class="form-control" id="latitud" name="latitud" 
+                                           placeholder="4.6097" required readonly>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="longitud" class="form-label">Longitud *</label>
+                                    <input type="number" step="any" class="form-control" id="longitud" name="longitud" 
+                                           placeholder="-74.0817" required readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="observaciones" class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="observaciones" name="observaciones" rows="3" 
+                                      placeholder="Describe detalles adicionales sobre el apoyo requerido..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Ubicación Automática:</strong> 
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="obtenerUbicacion">
+                                    <i class="fas fa-map-marker-alt"></i> Obtener Mi Ubicación
+                                </button>
+                                <span id="ubicacionStatus" class="ms-2"></span>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('tecnico.dashboard') }}" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="btnEnviar">
+                                <i class="fas fa-paper-plane"></i> Crear Solicitud
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnObtenerUbicacion = document.getElementById('obtenerUbicacion');
+    const latitudInput = document.getElementById('latitud');
+    const longitudInput = document.getElementById('longitud');
+    const ubicacionStatus = document.getElementById('ubicacionStatus');
+    const btnEnviar = document.getElementById('btnEnviar');
+    
+    // Función para obtener ubicación
+    btnObtenerUbicacion.addEventListener('click', function() {
+        if (navigator.geolocation) {
+            ubicacionStatus.innerHTML = '<span class="text-info"><i class="fas fa-spinner fa-spin"></i> Obteniendo ubicación...</span>';
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    latitudInput.value = position.coords.latitude;
+                    longitudInput.value = position.coords.longitude;
+                    ubicacionStatus.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> Ubicación obtenida</span>';
+                    btnEnviar.disabled = false;
+                },
+                function(error) {
+                    let mensaje = 'Error obteniendo ubicación';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            mensaje = 'Permiso de ubicación denegado';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            mensaje = 'Ubicación no disponible';
+                            break;
+                        case error.TIMEOUT:
+                            mensaje = 'Tiempo de espera agotado';
+                            break;
+                    }
+                    ubicacionStatus.innerHTML = `<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> ${mensaje}</span>`;
+                    // Permitir entrada manual
+                    latitudInput.readOnly = false;
+                    longitudInput.readOnly = false;
+                    latitudInput.placeholder = 'Ingresa latitud manualmente';
+                    longitudInput.placeholder = 'Ingresa longitud manualmente';
+                }
+            );
+        } else {
+            ubicacionStatus.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle"></i> Geolocalización no soportada</span>';
+            // Permitir entrada manual
+            latitudInput.readOnly = false;
+            longitudInput.readOnly = false;
+        }
+    });
+    
+    // Validar formulario antes de enviar
+    document.getElementById('solicitudForm').addEventListener('submit', function(e) {
+        const tipoApoyo = document.getElementById('tipo_apoyo').value;
+        const latitud = latitudInput.value;
+        const longitud = longitudInput.value;
+        
+        if (!tipoApoyo) {
+            e.preventDefault();
+            alert('Por favor selecciona el tipo de apoyo');
+            return;
+        }
+        
+        if (!latitud || !longitud) {
+            e.preventDefault();
+            alert('Por favor obtén tu ubicación o ingrésala manualmente');
+            return;
+        }
+    });
+    
+    // Obtener ubicación automáticamente al cargar
+    btnObtenerUbicacion.click();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,855 @@
+{% extends "base.html" %}
+
+{% block title %}Mapa en Tiempo Real - Synapsis Apoyos{% endblock %}
+
+{% block head %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+
+<!-- Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-map text-primary"></i> Mapa en Tiempo Real</h2>
+                <div>
+                    <button class="btn btn-outline-primary me-2" id="actualizarMapa">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
+                    <a href="{{ url_for('tecnico.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Panel de información -->
+        <div class="col-lg-3">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Información</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">Tu ubicación actual:</small>
+                        <div id="miUbicacion" class="fw-bold">Obteniendo...</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Móviles asignadas:</small>
+                        <div id="contadorMoviles" class="fw-bold text-primary">Cargando...</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Última actualización:</small>
+                        <div id="ultimaActualizacion" class="fw-bold">--:--</div>
+                    </div>
+                    
+                    <button class="btn btn-success btn-sm w-100" id="solicitarApoyo">
+                        <i class="fas fa-plus"></i> Solicitar Apoyo
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Lista de móviles asignadas -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-truck"></i> Móviles Asignadas</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div id="listaMoviles" class="list-group list-group-flush">
+                        <div class="list-group-item text-center text-muted">
+                            <i class="fas fa-spinner fa-spin"></i> Cargando...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mapa -->
+        <div class="col-lg-9">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div id="mapa" style="height: 600px; border-radius: 0.375rem;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Controles del mapa -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="radioBusqueda" class="form-label">Actualización automática</label>
+                            <select class="form-select" id="radioBusqueda" disabled>
+                                <option value="5" selected>Cada 5 segundos (FIJO)</option>
+                            </select>
+                            <small class="text-muted">Intervalo fijo - No modificable por seguridad</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="tipoVista" class="form-label">Tipo de vista</label>
+                            <select class="form-select" id="tipoVista">
+                                <option value="roadmap" selected>Mapa</option>
+                                <option value="satellite">Satélite</option>
+                                <option value="hybrid">Híbrido</option>
+                                <option value="terrain">Terreno</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" id="autoActualizar" checked disabled>
+                                <label class="form-check-label" for="autoActualizar">
+                                    Tracking en tiempo real (5s) - ACTIVO
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" id="mostrarRutas" checked>
+                                <label class="form-check-label" for="mostrarRutas">
+                                    Mostrar rutas
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+class MapaTecnico {
+    constructor() {
+        this.mapa = null;
+        this.miUbicacion = null;
+        this.miMarcador = null;
+        this.marcadoresMoviles = [];
+        this.movilesAsignadas = [];
+        this.movilesCercanas = [];
+        this.rutasMoviles = [];
+        this.autoActualizarInterval = null;
+        this.popupActual = null;
+    }
+    
+    init() {
+        console.log('Iniciando MapaTecnico...');
+        this.obtenerMiUbicacion();
+        this.configurarEventos();
+    }
+    
+    inicializarMapa() {
+        if (!this.miUbicacion) {
+            console.error('No hay ubicación disponible para inicializar el mapa');
+            return;
+        }
+        
+        console.log('Inicializando mapa con ubicación:', this.miUbicacion);
+        
+        try {
+            // Crear el mapa con Leaflet
+            this.mapa = L.map('mapa').setView([this.miUbicacion.lat, this.miUbicacion.lng], 13);
+            
+            // Añadir capa de OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(this.mapa);
+            
+            console.log('Mapa creado exitosamente');
+            
+            // Añadir marcador de mi ubicación
+            this.crearMiMarcador();
+            
+            // Cargar móviles cercanas
+            this.cargarMovilesAsignadas();
+            this.cargarMovilesCercanas();
+            
+            // Configurar eventos del mapa
+            this.configurarEventosMapa();
+            
+            // Inicializar auto-actualización OBLIGATORIA cada 5 segundos
+            // Esta funcionalidad es FIJA y no puede ser deshabilitada
+            this.iniciarAutoActualizacion();
+            console.log('Sistema de actualización automática FIJO iniciado - No modificable por el técnico');
+            
+            console.log('Mapa completamente inicializado');
+            
+        } catch (error) {
+            console.error('Error inicializando mapa:', error);
+            document.getElementById('mapa').innerHTML = `
+                <div class="d-flex align-items-center justify-content-center h-100 bg-light">
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                        <h5 class="text-muted">Error inicializando el mapa</h5>
+                        <p class="text-muted">${error.message}</p>
+                        <button class="btn btn-primary" onclick="location.reload()">Reintentar</button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    crearMiMarcador() {
+        if (!this.mapa || !this.miUbicacion) return;
+        
+        // Crear icono personalizado para técnico usando SVG
+        const iconoTecnico = L.divIcon({
+            html: `<div style="background-color: #2563eb; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                     <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
+                       <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                     </svg>
+                   </div>`,
+            className: 'custom-marker',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+        
+        // Crear marcador
+        this.miMarcador = L.marker([this.miUbicacion.lat, this.miUbicacion.lng], {
+            icon: iconoTecnico
+        }).addTo(this.mapa);
+        
+        // Añadir popup
+        this.miMarcador.bindPopup(`
+            <div class="p-3">
+                <h6 class="font-semibold text-blue-600">Mi Ubicación</h6>
+                <p class="text-sm text-gray-600">Técnico en servicio</p>
+                <p class="text-xs text-gray-500">Lat: ${this.miUbicacion.lat.toFixed(6)}, Lng: ${this.miUbicacion.lng.toFixed(6)}</p>
+            </div>
+        `);
+    }
+    
+    obtenerMiUbicacion() {
+        console.log('Obteniendo ubicación del usuario...');
+        
+        if (navigator.geolocation) {
+            console.log('Geolocalización disponible, solicitando posición...');
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    console.log('Ubicación obtenida exitosamente:', position.coords);
+                    this.miUbicacion = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    this.actualizarInfoUbicacion();
+                    this.enviarUbicacionAlServidor(this.miUbicacion.lat, this.miUbicacion.lng);
+                    this.inicializarMapa();
+                },
+                (error) => {
+                    console.warn('Error obteniendo ubicación:', error.message, 'Código:', error.code);
+                    
+                    let mensajeError = 'No disponible';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            mensajeError = 'Permisos denegados';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            mensajeError = 'Ubicación no disponible';
+                            break;
+                        case error.TIMEOUT:
+                            mensajeError = 'Tiempo agotado';
+                            break;
+                    }
+                    
+                    document.getElementById('miUbicacion').textContent = mensajeError;
+                    
+                    // Usar ubicación por defecto (Bogotá)
+                    console.log('Usando ubicación por defecto: Bogotá');
+                    this.miUbicacion = { lat: 4.6097, lng: -74.0817 };
+                    this.actualizarInfoUbicacion();
+                    this.inicializarMapa();
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 300000 // 5 minutos
+                }
+            );
+        } else {
+            console.warn('Geolocalización no soportada por el navegador');
+            document.getElementById('miUbicacion').textContent = 'Geolocalización no soportada';
+            this.miUbicacion = { lat: 4.6097, lng: -74.0817 };
+            this.actualizarInfoUbicacion();
+            this.inicializarMapa();
+        }
+    }
+    
+    actualizarInfoUbicacion() {
+        if (this.miUbicacion) {
+            document.getElementById('miUbicacion').textContent = 
+                `${this.miUbicacion.lat.toFixed(4)}, ${this.miUbicacion.lng.toFixed(4)}`;
+        }
+    }
+    
+    async enviarUbicacionAlServidor(lat, lng) {
+        try {
+            const response = await fetch('/tecnico/api/actualizar-ubicacion', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({ lat, lng })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Error al actualizar ubicación en servidor');
+            }
+            
+            const data = await response.json();
+            console.log('Ubicación actualizada en servidor:', data.timestamp);
+            
+        } catch (error) {
+            console.error('Error enviando ubicación al servidor:', error);
+        }
+    }
+    
+    actualizarUbicacionPeriodicamente() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const nuevaUbicacion = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    
+                    // Solo actualizar si la ubicación cambió significativamente (más de 10 metros)
+                    if (this.miUbicacion) {
+                        const distancia = this.calcularDistancia(
+                            this.miUbicacion.lat, this.miUbicacion.lng,
+                            nuevaUbicacion.lat, nuevaUbicacion.lng
+                        );
+                        
+                        if (distancia > 0.01) { // 10 metros aproximadamente
+                            this.miUbicacion = nuevaUbicacion;
+                            this.actualizarInfoUbicacion();
+                            this.enviarUbicacionAlServidor(nuevaUbicacion.lat, nuevaUbicacion.lng);
+                            
+                            // Actualizar marcador en el mapa
+                            if (this.miMarcador && this.mapa) {
+                                this.miMarcador.setLatLng([nuevaUbicacion.lat, nuevaUbicacion.lng]);
+                            }
+                        }
+                    }
+                },
+                (error) => {
+                    console.error('Error actualizando ubicación:', error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 60000 // 1 minuto
+                }
+            );
+        }
+    }
+    
+    calcularDistancia(lat1, lng1, lat2, lng2) {
+        const R = 6371; // Radio de la Tierra en km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLng/2) * Math.sin(dLng/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+    
+    cargarMovilesCercanas() {
+        if (!this.miUbicacion) return;
+        
+        // Limpiar marcadores existentes
+        this.limpiarMarcadoresMoviles();
+        
+        // Cargar tanto móviles asignadas como cercanas
+        this.cargarMovilesAsignadas();
+        this.cargarMovilesCercanas();
+    }
+    
+    async cargarMovilesAsignadas() {
+        if (!this.miUbicacion) return;
+        
+        try {
+            const response = await fetch(
+                `/tecnico/api/moviles-asignadas?lat=${this.miUbicacion.lat}&lng=${this.miUbicacion.lng}`,
+                {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+            
+            const data = await response.json();
+            this.movilesAsignadas = data.moviles_asignadas || [];
+            
+            this.crearMarcadoresMovilesAsignadas();
+            this.crearRutasMovilesAsignadas();
+            this.actualizarContadorMoviles();
+            this.actualizarListaMoviles();
+            
+        } catch (error) {
+            console.error('Error cargando móviles asignadas:', error);
+            this.movilesAsignadas = [];
+            this.actualizarContadorMoviles();
+            this.actualizarListaMoviles();
+        }
+    }
+    
+    async cargarMovilesCercanas() {
+        if (!this.miUbicacion) return;
+        
+        try {
+            const radio = 20; // 20 km por defecto
+            const response = await fetch(
+                `/tecnico/api/moviles-cercanas?lat=${this.miUbicacion.lat}&lng=${this.miUbicacion.lng}&radio=${radio}`,
+                {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }
+            );
+            
+            if (!response.ok) {
+                throw new Error('Error en la respuesta del servidor');
+            }
+            
+            const data = await response.json();
+            this.movilesCercanas = data.moviles || [];
+            
+            this.crearMarcadoresMovilesCercanas();
+            this.actualizarUltimaActualizacion();
+            
+        } catch (error) {
+            console.error('Error cargando móviles cercanas:', error);
+            this.movilesCercanas = [];
+        }
+    }
+    
+    limpiarMarcadoresMoviles() {
+        this.marcadoresMoviles.forEach(marcador => {
+            this.mapa.removeLayer(marcador);
+        });
+        this.marcadoresMoviles = [];
+        
+        // Limpiar rutas también
+        this.rutasMoviles.forEach(ruta => {
+            this.mapa.removeLayer(ruta);
+        });
+        this.rutasMoviles = [];
+    }
+    
+    crearMarcadoresMovilesAsignadas() {
+        if (!this.mapa || !this.movilesAsignadas) return;
+        
+        this.movilesAsignadas.forEach(movil => {
+            // Crear icono personalizado para móvil asignada
+            const iconoMovil = L.divIcon({
+                html: `<div style="background-color: ${movil.estado_color}; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.4);">
+                         <svg width="18" height="18" fill="white" viewBox="0 0 24 24">
+                           <path d="M20,8h-3V4H3C1.89,4 1,4.89 1,6v12h2c0,1.66 1.34,3 3,3s3-1.34 3-3h6c0,1.66 1.34,3 3,3s3-1.34 3-3h2v-5L20,8zM6,18.5c-0.83,0 -1.5,-0.67 -1.5,-1.5s0.67,-1.5 1.5,-1.5s1.5,0.67 1.5,1.5S6.83,18.5 6,18.5zM18,18.5c-0.83,0 -1.5,-0.67 -1.5,-1.5s0.67,-1.5 1.5,-1.5s1.5,0.67 1.5,1.5S18.83,18.5 18,18.5zM16,8v-2h2.5l1.96,2H16z"/>
+                         </svg>
+                       </div>`,
+                className: 'custom-marker-movil-asignada',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+            
+            const marcador = L.marker([movil.coordenadas.lat, movil.coordenadas.lng], {
+                icon: iconoMovil
+            }).addTo(this.mapa);
+            
+            // Añadir popup con información del servicio
+            const contenido = `
+                <div class="p-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="rounded-circle me-2" style="width: 12px; height: 12px; background-color: ${movil.estado_color}"></div>
+                        <h6 class="mb-0 fw-bold">${movil.nombre}</h6>
+                    </div>
+                    <div class="small">
+                        <p class="mb-1"><strong>Estado:</strong> ${movil.estado_texto}</p>
+                        <p class="mb-1"><strong>Distancia:</strong> ${movil.distancia_km} km</p>
+                        <p class="mb-1"><strong>Tiempo estimado:</strong> ${movil.tiempo_estimado_min} min</p>
+                        <p class="mb-1"><strong>Tipo de apoyo:</strong> ${movil.tipo_apoyo}</p>
+                        <p class="mb-1"><strong>Teléfono:</strong> <a href="tel:${movil.telefono}">${movil.telefono}</a></p>
+                        ${movil.observaciones ? `<p class="mb-1"><strong>Observaciones:</strong> ${movil.observaciones}</p>` : ''}
+                    </div>
+                    <div class="mt-2 text-center">
+                        <span class="badge" style="background-color: ${movil.estado_color}; color: white;">
+                            Asignada a tu solicitud
+                        </span>
+                    </div>
+                </div>
+            `;
+            
+            marcador.bindPopup(contenido);
+            this.marcadoresMoviles.push(marcador);
+        });
+    }
+    
+    crearMarcadoresMovilesCercanas() {
+         if (!this.mapa || !this.movilesCercanas) return;
+         
+         this.movilesCercanas.forEach(movil => {
+             // Solo mostrar móviles disponibles (no ocupadas)
+             if (movil.estado === 'disponible') {
+                 const iconoMovil = L.divIcon({
+                     html: `<div style="background-color: #6c757d; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                              <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
+                                <path d="M20,8h-3V4H3C1.89,4 1,4.89 1,6v12h2c0,1.66 1.34,3 3,3s3-1.34 3-3h6c0,1.66 1.34,3 3,3s3-1.34 3-3h2v-5L20,8zM6,18.5c-0.83,0 -1.5,-0.67 -1.5,-1.5s0.67,-1.5 1.5,-1.5s1.5,0.67 1.5,1.5S6.83,18.5 6,18.5zM18,18.5c-0.83,0 -1.5,-0.67 -1.5,-1.5s0.67,-1.5 1.5,-1.5s1.5,0.67 1.5,1.5S18.83,18.5 18,18.5zM16,8v-2h2.5l1.96,2H16z"/>
+                              </svg>
+                            </div>`,
+                     className: 'custom-marker-movil-cercana',
+                     iconSize: [28, 28],
+                     iconAnchor: [14, 14]
+                 });
+                 
+                 const marcador = L.marker([movil.coordenadas.lat, movil.coordenadas.lng], {
+                     icon: iconoMovil
+                 }).addTo(this.mapa);
+                 
+                 const contenido = `
+                     <div class="p-3">
+                         <h6 class="mb-2 fw-bold text-secondary">${movil.nombre}</h6>
+                         <div class="small">
+                             <p class="mb-1"><strong>Estado:</strong> Disponible</p>
+                             <p class="mb-1"><strong>Distancia:</strong> ${movil.distancia_km} km</p>
+                             <p class="mb-1"><strong>Tiempo estimado:</strong> ${movil.tiempo_estimado_min} min</p>
+                             <p class="mb-1"><strong>Teléfono:</strong> <a href="tel:${movil.telefono}">${movil.telefono}</a></p>
+                         </div>
+                         <div class="mt-2 text-center">
+                             <span class="badge bg-secondary">Móvil cercana disponible</span>
+                         </div>
+                     </div>
+                 `;
+                 
+                 marcador.bindPopup(contenido);
+                 this.marcadoresMoviles.push(marcador);
+             }
+         });
+     }
+     
+     async crearRutasMovilesAsignadas() {
+         if (!this.mapa || !this.movilesAsignadas || !this.miUbicacion) return;
+         
+         for (const movil of this.movilesAsignadas) {
+             try {
+                 const response = await fetch('/tecnico/api/calcular-ruta', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json'
+                     },
+                     body: JSON.stringify({
+                         origen: {
+                             lat: movil.coordenadas.lat,
+                             lng: movil.coordenadas.lng
+                         },
+                         destino: {
+                             lat: this.miUbicacion.lat,
+                             lng: this.miUbicacion.lng
+                         }
+                     })
+                 });
+                 
+                 if (response.ok) {
+                     const data = await response.json();
+                     
+                     if (data.success && data.ruta && data.ruta.coordinates) {
+                         // Crear polyline con la ruta
+                         const coordenadas = data.ruta.coordinates.map(coord => [coord[1], coord[0]]);
+                         
+                         const ruta = L.polyline(coordenadas, {
+                             color: movil.estado_color,
+                             weight: 4,
+                             opacity: 0.8,
+                             dashArray: '10, 5'
+                         }).addTo(this.mapa);
+                         
+                         // Agregar popup a la ruta
+                         ruta.bindPopup(`
+                             <div class="p-2">
+                                 <h6 class="mb-1">Ruta hacia ${movil.nombre}</h6>
+                                 <small>
+                                     <strong>Distancia:</strong> ${data.ruta.distancia_km} km<br>
+                                     <strong>Tiempo estimado:</strong> ${data.ruta.tiempo_min} min
+                                 </small>
+                             </div>
+                         `);
+                         
+                         this.rutasMoviles.push(ruta);
+                     }
+                 }
+             } catch (error) {
+                 console.error(`Error creando ruta para móvil ${movil.nombre}:`, error);
+             }
+         }
+     }
+    
+    generarMovilesSimuladas() {
+        const moviles = [];
+        const numMoviles = Math.floor(Math.random() * 5) + 2; // 2-6 móviles
+        
+        for (let i = 0; i < numMoviles; i++) {
+            const distancia = Math.random() * 15 + 1; // 1-16 km
+            const angulo = Math.random() * 2 * Math.PI;
+            
+            moviles.push({
+                id: i + 1,
+                nombre: `Móvil ${i + 1}`,
+                distancia: distancia.toFixed(1),
+                estado: Math.random() > 0.3 ? 'disponible' : 'ocupada',
+                tiempoEstimado: Math.floor(distancia * 2 + Math.random() * 10) // minutos
+            });
+        }
+        
+        return moviles.sort((a, b) => parseFloat(a.distancia) - parseFloat(b.distancia));
+    }
+    
+    actualizarContadorMoviles() {
+        const asignadas = this.movilesAsignadas ? this.movilesAsignadas.length : 0;
+        const cercanas = this.movilesCercanas ? this.movilesCercanas.filter(m => m.estado === 'disponible').length : 0;
+        
+        if (asignadas === 0) {
+            if (cercanas > 0) {
+                document.getElementById('contadorMoviles').innerHTML = 
+                    `Sin asignadas<br><small class="text-muted">${cercanas} disponible${cercanas > 1 ? 's' : ''} cerca</small>`;
+            } else {
+                document.getElementById('contadorMoviles').textContent = 'Sin móviles asignadas';
+            }
+        } else {
+            document.getElementById('contadorMoviles').innerHTML = 
+                `${asignadas} asignada${asignadas > 1 ? 's' : ''}<br><small class="text-muted">${cercanas} disponible${cercanas > 1 ? 's' : ''} cerca</small>`;
+        }
+    }
+    
+    actualizarListaMoviles() {
+        const lista = document.getElementById('listaMoviles');
+        const asignadas = this.movilesAsignadas || [];
+        
+        if (asignadas.length === 0) {
+            lista.innerHTML = `
+                <div class="list-group-item text-center text-muted">
+                    <i class="fas fa-info-circle"></i> No hay móviles asignadas
+                    <br><small>Las móviles aparecerán aquí cuando acepten tus solicitudes</small>
+                </div>
+            `;
+            return;
+        }
+        
+        lista.innerHTML = asignadas.map(movil => {
+            const estadoColor = movil.estado === 'aceptado' ? 'warning' : 
+                               movil.estado === 'en_ruta' ? 'info' : 'success';
+            
+            return `
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">
+                                <i class="fas fa-truck text-primary"></i> ${movil.nombre}
+                            </h6>
+                            <small class="text-muted">
+                                <i class="fas fa-map-marker-alt"></i> ${movil.distancia_km} km
+                                <span class="ms-2">
+                                    <i class="fas fa-clock"></i> ~${movil.tiempo_estimado_min} min
+                                </span>
+                                <br>
+                                <i class="fas fa-tools"></i> ${movil.tipo_apoyo}
+                                <span class="ms-2">
+                                    <i class="fas fa-phone"></i> ${movil.telefono}
+                                </span>
+                            </small>
+                        </div>
+                        <span class="badge bg-${estadoColor}">
+                            ${movil.estado_texto}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    actualizarUltimaActualizacion() {
+        const ahora = new Date();
+        document.getElementById('ultimaActualizacion').textContent = 
+            ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    configurarEventos() {
+        // Botón actualizar
+        document.getElementById('actualizarMapa').addEventListener('click', () => {
+            this.cargarMovilesCercanas();
+        });
+        
+        // Botón solicitar apoyo
+        document.getElementById('solicitarApoyo').addEventListener('click', () => {
+            window.location.href = '{{ url_for("tecnico.nueva_solicitud") }}';
+        });
+        
+        // Radio de búsqueda deshabilitado - intervalo fijo de 5 segundos
+        // No se configura evento ya que está deshabilitado por seguridad
+        
+        // Cambio de tipo de vista
+        document.getElementById('tipoVista').addEventListener('change', (e) => {
+            if (this.mapa) {
+                // Remover todas las capas de tiles existentes
+                this.mapa.eachLayer((layer) => {
+                    if (layer instanceof L.TileLayer) {
+                        this.mapa.removeLayer(layer);
+                    }
+                });
+                
+                // Añadir nueva capa según el tipo seleccionado
+                let tileLayer;
+                switch(e.target.value) {
+                    case 'satellite':
+                        tileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+                            maxZoom: 19
+                        });
+                        break;
+                    case 'hybrid':
+                        // Para híbrido, usamos satélite como base
+                        tileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+                            maxZoom: 19
+                        });
+                        break;
+                    case 'terrain':
+                        tileLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                            attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+                            maxZoom: 19
+                        });
+                        break;
+                    default: // roadmap
+                        tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors',
+                            maxZoom: 19
+                        });
+                }
+                tileLayer.addTo(this.mapa);
+            }
+        });
+        
+        // Auto-actualizar FIJO - No se permite deshabilitar por seguridad
+        // El checkbox está deshabilitado y siempre activo
+        // La actualización automática es OBLIGATORIA cada 5 segundos
+    }
+    
+    configurarEventosMapa() {
+        if (!this.mapa) return;
+        
+        // Evento de click en el mapa
+        this.mapa.on('click', (event) => {
+            // Cerrar popups abiertos
+            this.mapa.closePopup();
+        });
+        
+        // Evento de zoom change
+        this.mapa.on('zoomend', () => {
+            // Opcional: actualizar datos según el zoom
+        });
+        
+        // Evento de bounds change (cuando se mueve el mapa)
+        this.mapa.on('moveend', () => {
+            // Opcional: cargar móviles en la nueva área visible
+        });
+    }
+    
+    iniciarAutoActualizacion() {
+        this.detenerAutoActualizacion();
+        // Intervalo fijo de 5 segundos - NO MODIFICABLE
+        this.autoActualizarInterval = setInterval(() => {
+            console.log('Auto-actualizando móviles y ubicación cada 5 segundos (FIJO)...');
+            this.actualizarUbicacionPeriodicamente();
+            this.cargarMovilesAsignadas();
+            this.cargarMovilesCercanas();
+            this.actualizarUltimaActualizacion();
+        }, 5000); // 5 segundos FIJO - NO CAMBIAR
+        
+        // Validación continua para asegurar que el proceso se mantenga activo
+        this.validacionInterval = setInterval(() => {
+            this.validarYRecuperarActualizacion();
+        }, 10000); // Verificar cada 10 segundos
+        
+        console.log('Actualización automática iniciada con intervalo fijo de 5 segundos');
+        console.log('Sistema de validación continua activado');
+    }
+    
+    detenerAutoActualizacion() {
+        if (this.autoActualizarInterval) {
+            clearInterval(this.autoActualizarInterval);
+            this.autoActualizarInterval = null;
+        }
+        if (this.validacionInterval) {
+            clearInterval(this.validacionInterval);
+            this.validacionInterval = null;
+        }
+    }
+    
+    // Función de validación y auto-recuperación
+    validarYRecuperarActualizacion() {
+        if (!this.autoActualizarInterval) {
+            console.warn('ALERTA: Actualización automática detenida. Reiniciando automáticamente...');
+            this.iniciarAutoActualizacion();
+        } else {
+            console.log('Validación OK: Actualización automática activa');
+        }
+    }
+}
+
+// Variable global para la instancia del mapa
+let mapaTecnico;
+
+// Función global para solicitar móvil desde popup
+function solicitarMovil(movilId) {
+    if (confirm('¿Deseas solicitar apoyo a esta móvil?')) {
+        // Redirigir a nueva solicitud con móvil preseleccionada
+        window.location.href = '{{ url_for("tecnico.nueva_solicitud") }}?movil=' + movilId;
+    }
+}
+
+// Inicializar cuando se carga la página
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar si Leaflet está cargado
+    if (typeof L !== 'undefined') {
+        mapaTecnico = new MapaTecnico();
+        mapaTecnico.init();
+    } else {
+        console.error('Leaflet no se pudo cargar');
+        // Mostrar mensaje de error en el mapa
+        document.getElementById('mapa').innerHTML = `
+            <div class="d-flex align-items-center justify-content-center h-100 bg-light">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5 class="text-muted">Error cargando el mapa</h5>
+                    <p class="text-muted">Por favor, verifica tu conexión a internet</p>
+                    <button class="btn btn-primary" onclick="location.reload()">Reintentar</button>
+                </div>
+            </div>
+        `;
+    }
+});
+</script>
+{% endblock %}

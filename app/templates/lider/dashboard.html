@@ -1,0 +1,514 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Líder - Synapsis Apoyos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-tachometer-alt text-primary"></i> Dashboard de Supervisión</h2>
+                <div>
+                    <span class="badge bg-success fs-6">
+                        <i class="fas fa-eye"></i> Supervisando
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Métricas principales -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3 class="mb-0">{{ solicitudes_hoy }}</h3>
+                            <p class="mb-0">Solicitudes Hoy</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-day fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-primary bg-opacity-75">
+                    <small><i class="fas fa-clock"></i> Actualizado ahora</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3 class="mb-0">{{ servicios_activos }}</h3>
+                            <p class="mb-0">Servicios Activos</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-cog fa-spin fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-warning bg-opacity-75">
+                    <small><i class="fas fa-users"></i> En tiempo real</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3 class="mb-0">{{ moviles_activas }}</h3>
+                            <p class="mb-0">Móviles Activas</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-truck fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-success bg-opacity-75">
+                    <small><i class="fas fa-signal"></i> Online</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3 class="mb-0">{{ solicitudes_pendientes }}</h3>
+                            <p class="mb-0">Pendientes</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-danger bg-opacity-75">
+                    <small><i class="fas fa-hourglass-half"></i> Esperando</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtro por localidad -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-filter"></i> Filtros de Vista</h6>
+                </div>
+                <div class="card-body py-2">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <label for="filtroLocalidad" class="form-label mb-1">Filtrar por localidad:</label>
+                            <select class="form-select form-select-sm" id="filtroLocalidad">
+                                <option value="todas" selected>Todas las localidades</option>
+                                <!-- Las opciones se cargarán dinámicamente -->
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="filtroFecha" class="form-label mb-1">Período:</label>
+                            <select class="form-select form-select-sm" id="filtroFecha">
+                                <option value="hoy" selected>Hoy</option>
+                                <option value="semana">Esta semana</option>
+                                <option value="mes">Este mes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn btn-primary btn-sm me-2" id="aplicarFiltros">
+                                <i class="fas fa-search"></i> Aplicar
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" id="limpiarFiltros">
+                                <i class="fas fa-times"></i> Limpiar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Métricas del mes -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Métricas del Mes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="border-end">
+                                <h4 class="text-primary mb-1">{{ solicitudes_mes }}</h4>
+                                <small class="text-muted">Total Solicitudes</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border-end">
+                                <h4 class="text-success mb-1">{{ servicios_completados_mes }}</h4>
+                                <small class="text-muted">Completados</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border-end">
+                                <h4 class="text-info mb-1">{{ tasa_aceptacion }}%</h4>
+                                <small class="text-muted">Tasa Aceptación</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <h4 class="text-warning mb-1">{{ tiempo_promedio_respuesta }} min</h4>
+                            <small class="text-muted">Tiempo Promedio</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Barra de progreso de tasa de aceptación -->
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small class="text-muted">Rendimiento General</small>
+                            <small class="text-muted">{{ tasa_aceptacion }}%</small>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-{{ 'success' if tasa_aceptacion >= 80 else 'warning' if tasa_aceptacion >= 60 else 'danger' }}" 
+                                 role="progressbar" style="width: {{ tasa_aceptacion }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-tools"></i> Acciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('lider.mapa') }}" class="btn btn-primary">
+                            <i class="fas fa-map"></i> Ver Mapa General
+                        </a>
+                        <a href="{{ url_for('lider.reportes') }}" class="btn btn-info">
+                            <i class="fas fa-chart-bar"></i> Generar Reportes
+                        </a>
+                        <a href="{{ url_for('lider.usuarios') }}" class="btn btn-success">
+                            <i class="fas fa-users"></i> Gestionar Usuarios
+                        </a>
+                        <a href="{{ url_for('lider.solicitudes') }}" class="btn btn-warning">
+                            <i class="fas fa-list"></i> Ver Todas las Solicitudes
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Servicios activos -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-cogs"></i> Servicios Activos</h5>
+                    <span class="badge bg-dark">{{ servicios_activos_detalle|length }}</span>
+                </div>
+                <div class="card-body">
+                    {% if servicios_activos_detalle %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Móvil</th>
+                                        <th>Estado</th>
+                                        <th>Tiempo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for servicio in servicios_activos_detalle[:10] %}
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-{{ 'ladder' if servicio.solicitud.tipo_apoyo == 'escalera' else 'tools' }}"></i>
+                                            {{ servicio.solicitud.tipo_apoyo.title() }}
+                                        </td>
+                                        <td>{{ servicio.movil.nombre }} {{ servicio.movil.apellido }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 
+                                                'info' if servicio.estado_servicio == 'aceptado' else
+                                                'primary' if servicio.estado_servicio == 'en_ruta' else
+                                                'warning' if servicio.estado_servicio == 'en_sitio' else
+                                                'secondary'
+                                            }}">
+                                                {{ servicio.estado_servicio.replace('_', ' ').title() }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ format_bogota_time(servicio.aceptado_at, '%H:%M') }}
+                                            </small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if servicios_activos_detalle|length > 10 %}
+                        <div class="text-center">
+                            <a href="{{ url_for('lider.servicios') }}" class="btn btn-sm btn-outline-primary">
+                                Ver todos los servicios
+                            </a>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                            <p class="text-muted mb-0">No hay servicios activos</p>
+                            <small class="text-muted">Todas las móviles están disponibles</small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Solicitudes recientes -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-clock"></i> Solicitudes Recientes</h5>
+                    <span class="badge bg-light text-dark">{{ solicitudes_recientes|length }}</span>
+                </div>
+                <div class="card-body">
+                    {% if solicitudes_recientes %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Técnico</th>
+                                        <th>Estado</th>
+                                        <th>Hora</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for solicitud in solicitudes_recientes[:10] %}
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-{{ 'ladder' if solicitud.tipo_apoyo == 'escalera' else 'tools' }}"></i>
+                                            {{ solicitud.tipo_apoyo.title() }}
+                                        </td>
+                                        <td>{{ solicitud.tecnico.nombre }} {{ solicitud.tecnico.apellido }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 
+                                                'warning' if solicitud.estado == 'pendiente' else
+                                                'success' if solicitud.estado == 'aceptada' else
+                                                'primary' if solicitud.estado == 'completada' else
+                                                'danger' if solicitud.estado == 'rechazada' else
+                                                'secondary'
+                                            }}">
+                                                {{ solicitud.estado.title() }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ solicitud.created_at.strftime('%H:%M') }}
+                                            </small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center">
+                            <a href="{{ url_for('lider.solicitudes') }}" class="btn btn-sm btn-outline-primary">
+                                Ver todas las solicitudes
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">No hay solicitudes recientes</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Cargar localidades al inicializar la página
+document.addEventListener('DOMContentLoaded', function() {
+    cargarLocalidades();
+    configurarFiltros();
+    actualizarTiempoReal();
+});
+
+// Función para cargar localidades en el selector
+async function cargarLocalidades() {
+    try {
+        const response = await fetch('/api/localidades');
+        if (!response.ok) {
+            throw new Error('Error al cargar localidades');
+        }
+        
+        const data = await response.json();
+        const selector = document.getElementById('filtroLocalidad');
+        
+        // Limpiar opciones existentes (excepto "Todas")
+        while (selector.children.length > 1) {
+            selector.removeChild(selector.lastChild);
+        }
+        
+        // Agregar localidades
+        data.localidades.forEach(localidad => {
+            const option = document.createElement('option');
+            option.value = localidad.codigo;
+            option.textContent = `${localidad.codigo} - ${localidad.nombre}`;
+            selector.appendChild(option);
+        });
+        
+        console.log('Localidades cargadas:', data.localidades.length);
+        
+    } catch (error) {
+        console.error('Error cargando localidades:', error);
+        mostrarNotificacion('Error al cargar localidades', 'error');
+    }
+}
+
+// Configurar eventos de filtros
+function configurarFiltros() {
+    const btnAplicar = document.getElementById('aplicarFiltros');
+    const btnLimpiar = document.getElementById('limpiarFiltros');
+    
+    btnAplicar.addEventListener('click', aplicarFiltros);
+    btnLimpiar.addEventListener('click', limpiarFiltros);
+}
+
+// Aplicar filtros
+function aplicarFiltros() {
+    const localidad = document.getElementById('filtroLocalidad').value;
+    const periodo = document.getElementById('filtroFecha').value;
+    
+    console.log('Aplicando filtros:', { localidad, periodo });
+    
+    // Construir URL con parámetros
+    const params = new URLSearchParams();
+    if (localidad !== 'todas') {
+        params.append('localidad', localidad);
+    }
+    if (periodo !== 'hoy') {
+        params.append('periodo', periodo);
+    }
+    
+    // Recargar página con filtros
+    const url = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.location.href = url;
+}
+
+// Limpiar filtros
+function limpiarFiltros() {
+    document.getElementById('filtroLocalidad').value = 'todas';
+    document.getElementById('filtroFecha').value = 'hoy';
+    
+    // Recargar página sin parámetros
+    window.location.href = window.location.pathname;
+}
+
+// Función para mostrar notificaciones
+function mostrarNotificacion(mensaje, tipo = 'info') {
+    const notificacion = document.createElement('div');
+    notificacion.className = `alert alert-${tipo === 'error' ? 'danger' : 'info'} position-fixed`;
+    notificacion.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notificacion.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="fas fa-${tipo === 'error' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+            ${mensaje}
+            <button type="button" class="btn-close ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+    `;
+    
+    document.body.appendChild(notificacion);
+    
+    // Auto-remover después de 5 segundos
+    setTimeout(() => {
+        if (notificacion.parentElement) {
+            notificacion.remove();
+        }
+    }, 5000);
+}
+
+// Auto-actualizar dashboard cada 30 segundos
+setInterval(function() {
+    actualizarMetricas();
+}, 30000);
+
+// Función para actualizar métricas en tiempo real
+function actualizarMetricas() {
+    fetch('/lider/dashboard/metricas')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Actualizar métricas principales
+                const solicitudesHoy = document.querySelector('[data-metrica="solicitudes-hoy"]');
+                if (solicitudesHoy) solicitudesHoy.textContent = data.solicitudes_hoy;
+                
+                const serviciosActivos = document.querySelector('[data-metrica="servicios-activos"]');
+                if (serviciosActivos) serviciosActivos.textContent = data.servicios_activos;
+                
+                const tiempoRespuesta = document.querySelector('[data-metrica="tiempo-respuesta"]');
+                if (tiempoRespuesta) tiempoRespuesta.textContent = data.tiempo_promedio_respuesta + ' min';
+                
+                const tasaAceptacion = document.querySelector('[data-metrica="tasa-aceptacion"]');
+                if (tasaAceptacion) {
+                    tasaAceptacion.textContent = data.tasa_aceptacion + '%';
+                    // Actualizar barra de progreso
+                    const progressBar = document.querySelector('.progress-bar');
+                    if (progressBar) {
+                        progressBar.style.width = data.tasa_aceptacion + '%';
+                        progressBar.className = `progress-bar bg-${
+                            data.tasa_aceptacion >= 80 ? 'success' : 
+                            data.tasa_aceptacion >= 60 ? 'warning' : 'danger'
+                        }`;
+                    }
+                }
+                
+                // Actualizar badges de contadores
+                const badgeServiciosActivos = document.querySelector('.card-header .badge');
+                if (badgeServiciosActivos && data.servicios_activos_detalle) {
+                    badgeServiciosActivos.textContent = data.servicios_activos_detalle.length;
+                }
+                
+                console.log('Métricas actualizadas:', new Date().toLocaleTimeString('es-CO', {
+                    timeZone: 'America/Bogota'
+                }));
+            }
+        })
+        .catch(error => {
+            console.error('Error al actualizar métricas:', error);
+        });
+}
+
+// Función para actualizar tiempo real con zona horaria de Bogotá
+function actualizarTiempoReal() {
+    const elementos = document.querySelectorAll('[data-tiempo-real]');
+    const ahora = new Date().toLocaleString('es-CO', {
+        timeZone: 'America/Bogota',
+        hour12: false
+    });
+    
+    elementos.forEach(elemento => {
+        if (elemento.dataset.tipoTiempo === 'hora-actual') {
+            elemento.textContent = ahora;
+        }
+    });
+}
+
+// Actualizar tiempo real cada 15 segundos (configuración de Bogotá)
+setInterval(actualizarTiempoReal, 15000);
+
+// Nota: La inicialización se maneja en el DOMContentLoaded anterior
+</script>
+{% endblock %}

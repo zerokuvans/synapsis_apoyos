@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Solicitudes - Synapsis Apoyos</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/img/faviconV2.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/faviconV2.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-icon-180x180.png">
+    <link rel="manifest" href="/static/site.webmanifest">
+    <meta name="theme-color" content="#1e40af">
+    
+    
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Leaflet Routing Machine CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
+    
+    <style>
+        :root {
+            --primary-color: #2563EB;
+            --primary-dark: #1d4ed8;
+            --success-color: #10B981;
+            --warning-color: #F59E0B;
+            --danger-color: #EF4444;
+            --info-color: #3B82F6;
+            --light-gray: #F8FAFC;
+            --medium-gray: #6B7280;
+            --dark-gray: #1F2937;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--light-gray);
+            color: var(--dark-gray);
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .navbar-logo {
+            height: 32px;
+            width: auto;
+            object-fit: contain;
+        }
+        
+        .navbar-nav .nav-link {
+            font-weight: 500;
+            margin: 0 5px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .navbar-nav .nav-link:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .navbar-nav .nav-link.active {
+            background-color: rgba(255,255,255,0.2);
+        }
+        
+        .main-content {
+            padding: 20px 0;
+            min-height: calc(100vh - 76px);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid #E5E7EB;
+            border-radius: 12px 12px 0 0 !important;
+            font-weight: 600;
+        }
+        
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 8px 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+        
+        .btn-warning {
+            background-color: var(--warning-color);
+            border-color: var(--warning-color);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+        
+        .alert {
+            border: none;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+        
+        .badge {
+            font-weight: 500;
+            padding: 6px 10px;
+            border-radius: 6px;
+        }
+        
+        .table {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .table thead th {
+            background-color: var(--light-gray);
+            border: none;
+            font-weight: 600;
+            color: var(--dark-gray);
+        }
+        
+        .table tbody tr {
+            transition: all 0.2s ease;
+        }
+        
+        .table tbody tr:hover {
+            background-color: rgba(37, 99, 235, 0.05);
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-card .stats-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stats-card .stats-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-pendiente {
+            background-color: #FEF3C7;
+            color: #92400E;
+        }
+        
+        .status-aceptada {
+            background-color: #D1FAE5;
+            color: #065F46;
+        }
+        
+        .status-rechazada {
+            background-color: #FEE2E2;
+            color: #991B1B;
+        }
+        
+        .status-completada {
+            background-color: #DBEAFE;
+            color: #1E40AF;
+        }
+        
+        .sidebar {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            height: fit-content;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        .sidebar .nav-link {
+            color: var(--medium-gray);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover {
+            background-color: var(--light-gray);
+            color: var(--primary-color);
+        }
+        
+        .sidebar .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 10px 0;
+            }
+            
+            .stats-card .stats-number {
+                font-size: 2rem;
+            }
+        }
+    </style>
+    
+    
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <img src="/static/img/logo-capired.png" alt="CAPIRED" class="navbar-logo me-2">
+                Synapsis Apoyos
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                
+                    <ul class="navbar-nav me-auto">
+                        
+                            <li class="nav-item">
+                                <a class="nav-link " href="/movil/dashboard">
+                                    <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" href="/movil/mapa">
+                                    <i class="fas fa-map me-1"></i>Mapa
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link " href="/movil/historial">
+                                    <i class="fas fa-history me-1"></i>Historial
+                                </a>
+                            </li>
+                        
+                    </ul>
+                    
+                    <ul class="navbar-nav">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i>
+                                María González
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="/movil/perfil">
+                                        <i class="fas fa-user-edit me-2"></i>Perfil
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="/auth/logout">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="container">
+            <!-- Flash Messages -->
+            
+                
+            
+            
+            
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-map text-primary"></i> Mapa de Solicitudes</h2>
+                <div>
+                    <button class="btn btn-outline-primary me-2" id="actualizarMapa">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
+                    <a href="/movil/dashboard" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Panel de información -->
+        <div class="col-lg-3">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Mi Estado</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">Estado actual:</small>
+                        <div class="fw-bold text-success" id="miEstado">Disponible</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Mi ubicación:</small>
+                        <div id="miUbicacion" class="fw-bold">Obteniendo...</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Solicitudes visibles:</small>
+                        <div id="contadorSolicitudes" class="fw-bold text-primary">0</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Última actualización:</small>
+                        <div id="ultimaActualizacion" class="fw-bold">--:--</div>
+                    </div>
+                    
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="disponible" checked>
+                        <label class="form-check-label" for="disponible">
+                            Disponible para servicios
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lista de solicitudes cercanas -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-list"></i> Solicitudes Cercanas</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div id="listaSolicitudes" class="list-group list-group-flush">
+                        <div class="list-group-item text-center text-muted">
+                            <i class="fas fa-spinner fa-spin"></i> Cargando...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mapa -->
+        <div class="col-lg-9">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div id="mapa" style="height: 600px; border-radius: 0.375rem;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Controles del mapa -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="radioBusqueda" class="form-label">Radio de búsqueda</label>
+                            <select class="form-select" id="radioBusqueda">
+                                <option value="5">5 km</option>
+                                <option value="10" selected>10 km</option>
+                                <option value="20">20 km</option>
+                                <option value="50">50 km</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="tipoApoyo" class="form-label">Tipo de apoyo</label>
+                            <select class="form-select" id="tipoApoyo">
+                                <option value="todos" selected>Todos</option>
+                                <option value="escalera">Escalera</option>
+                                <option value="equipos">Equipos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="tiempoLimite" class="form-label">Tiempo límite</label>
+                            <select class="form-select" id="tiempoLimite">
+                                <option value="todos" selected>Todos</option>
+                                <option value="30">Menos de 30 min</option>
+                                <option value="60">Menos de 1 hora</option>
+                                <option value="120">Menos de 2 horas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" id="autoActualizar" checked>
+                                <label class="form-check-label" for="autoActualizar">
+                                    Auto-actualizar (15s)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="mostrarRutas" checked>
+                                <label class="form-check-label" for="mostrarRutas">
+                                    Mostrar rutas
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para detalles de solicitud -->
+<div class="modal fade" id="solicitudModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles de la Solicitud</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="solicitudContent">
+                <!-- Contenido se carga dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-success" id="btnAceptar">Aceptar Solicitud</button>
+                <button type="button" class="btn btn-outline-danger" id="btnRechazar">Rechazar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para rechazar solicitud -->
+<div class="modal fade" id="rechazarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Rechazar Solicitud</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="rechazarForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="observaciones_rechazo" class="form-label">Motivo del rechazo *</label>
+                        <textarea class="form-control" id="observaciones_rechazo" name="observaciones" 
+                                  rows="3" required placeholder="Describe el motivo del rechazo..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Rechazar Solicitud</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet Routing Machine JS -->
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+<script>
+class MapaMovilGPS {
+    constructor() {
+        this.mapa = null;
+        this.miUbicacion = null;
+        this.miMarcador = null;
+        this.marcadoresSolicitudes = [];
+        this.rutaActual = null;
+        this.solicitudesCercanas = [];
+        this.autoActualizarInterval = null;
+        this.gpsWatchId = null;
+        this.solicitudSeleccionada = null;
+        this.init();
+    }
+    
+    init() {
+        this.inicializarMapa();
+        this.obtenerMiUbicacion();
+        this.configurarEventos();
+        this.iniciarAutoActualizacion();
+    }
+    
+    inicializarMapa() {
+        // Inicializar mapa con Leaflet
+        this.mapa = L.map('mapa').setView([4.6097, -74.0817], 13);
+        
+        // Agregar capa de OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(this.mapa);
+        
+        // Agregar controles de escala
+        L.control.scale().addTo(this.mapa);
+    }
+    
+    obtenerMiUbicacion() {
+        if (navigator.geolocation) {
+            // Obtener ubicación inicial
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    this.actualizarMiUbicacion(position.coords.latitude, position.coords.longitude);
+                    this.cargarSolicitudesCercanas();
+                },
+                (error) => {
+                    console.error('Error obteniendo ubicación:', error);
+                    this.manejarErrorUbicacion();
+                }
+            );
+            
+            // Iniciar seguimiento GPS continuo
+            this.gpsWatchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    this.actualizarMiUbicacion(position.coords.latitude, position.coords.longitude);
+                    this.enviarUbicacionAlServidor(position.coords.latitude, position.coords.longitude);
+                },
+                (error) => {
+                    console.error('Error en seguimiento GPS:', error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 30000
+                }
+            );
+        } else {
+            this.manejarErrorUbicacion();
+        }
+    }
+    
+    actualizarMiUbicacion(lat, lng) {
+        this.miUbicacion = { lat, lng };
+        
+        // Actualizar marcador en el mapa
+        if (this.miMarcador) {
+            this.miMarcador.setLatLng([lat, lng]);
+        } else {
+            // Crear marcador de mi ubicación
+            const iconoMovil = L.divIcon({
+                html: '<i class="fas fa-truck" style="color: #28a745; font-size: 20px;"></i>',
+                iconSize: [30, 30],
+                className: 'custom-div-icon'
+            });
+            
+            this.miMarcador = L.marker([lat, lng], { icon: iconoMovil })
+                .addTo(this.mapa)
+                .bindPopup('<b>Mi Ubicación</b><br>Móvil de Apoyo')
+                .openPopup();
+        }
+        
+        // Centrar mapa en mi ubicación
+        this.mapa.setView([lat, lng], this.mapa.getZoom());
+        
+        // Actualizar información en la UI
+        document.getElementById('miUbicacion').textContent = 
+            `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
+    
+    manejarErrorUbicacion() {
+        document.getElementById('miUbicacion').textContent = 'No disponible';
+        // Usar ubicación por defecto (Bogotá)
+        this.actualizarMiUbicacion(4.6097, -74.0817);
+        this.cargarSolicitudesCercanas();
+    }
+    
+    async enviarUbicacionAlServidor(lat, lng) {
+        try {
+            const response = await fetch('/movil/api/actualizar-ubicacion', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ lat, lng })
+            });
+            
+            if (!response.ok) {
+                console.error('Error enviando ubicación al servidor');
+            }
+        } catch (error) {
+            console.error('Error enviando ubicación:', error);
+        }
+    }
+    
+    async cargarSolicitudesCercanas() {
+        if (!this.miUbicacion) return;
+        
+        try {
+            const radio = document.getElementById('radioBusqueda').value;
+            const tipoApoyo = document.getElementById('tipoApoyo').value;
+            
+            const response = await fetch(
+                `/movil/api/solicitudes-cercanas?lat=${this.miUbicacion.lat}&lng=${this.miUbicacion.lng}&radio=${radio}&tipo_apoyo=${tipoApoyo}`
+            );
+            
+            if (!response.ok) {
+                throw new Error('Error cargando solicitudes');
+            }
+            
+            const data = await response.json();
+            this.solicitudesCercanas = data.solicitudes || [];
+            
+            this.actualizarMarcadoresSolicitudes();
+            this.actualizarContadorSolicitudes();
+            this.actualizarListaSolicitudes();
+            this.actualizarUltimaActualizacion();
+            
+        } catch (error) {
+            console.error('Error cargando solicitudes:', error);
+            document.getElementById('listaSolicitudes').innerHTML = 
+                '<div class="list-group-item text-center text-danger"><i class="fas fa-exclamation-triangle"></i> Error cargando solicitudes</div>';
+        }
+    }
+    
+    actualizarMarcadoresSolicitudes() {
+        // Limpiar marcadores existentes
+        this.marcadoresSolicitudes.forEach(marcador => {
+            this.mapa.removeLayer(marcador);
+        });
+        this.marcadoresSolicitudes = [];
+        
+        // Agregar nuevos marcadores
+        this.solicitudesCercanas.forEach(solicitud => {
+            const iconoSolicitud = L.divIcon({
+                html: `<i class="fas fa-${solicitud.tipo_apoyo === 'escalera' ? 'ladder' : 'tools'}" style="color: ${solicitud.urgente ? '#dc3545' : '#ffc107'}; font-size: 18px;"></i>`,
+                iconSize: [25, 25],
+                className: 'custom-div-icon'
+            });
+            
+            const marcador = L.marker([solicitud.coordenadas.lat, solicitud.coordenadas.lng], { icon: iconoSolicitud })
+                .addTo(this.mapa)
+                .bindPopup(`
+                    <div>
+                        <h6><i class="fas fa-${solicitud.tipo_apoyo === 'escalera' ? 'ladder' : 'tools'}"></i> ${solicitud.tipo_apoyo}</h6>
+                        <p><strong>${solicitud.tecnico}</strong></p>
+                        <p><i class="fas fa-map-marker-alt"></i> ${solicitud.distancia_km} km</p>
+                        <p><i class="fas fa-clock"></i> ~${solicitud.tiempo_estimado_min} min</p>
+                        <button class="btn btn-sm btn-primary" onclick="mapaMov.verRutaHacia(${solicitud.id})">Ver Ruta</button>
+                        <button class="btn btn-sm btn-success" onclick="mapaMov.verDetallesSolicitud(${solicitud.id})">Detalles</button>
+                    </div>
+                `);
+            
+            this.marcadoresSolicitudes.push(marcador);
+        });
+    }
+    
+    async verRutaHacia(solicitudId) {
+        const solicitud = this.solicitudesCercanas.find(s => s.id === solicitudId);
+        if (!solicitud || !this.miUbicacion) return;
+        
+        try {
+            const response = await fetch(
+                `/movil/api/ruta-tecnico/${solicitudId}?lat=${this.miUbicacion.lat}&lng=${this.miUbicacion.lng}`
+            );
+            
+            if (!response.ok) {
+                throw new Error('Error obteniendo ruta');
+            }
+            
+            const data = await response.json();
+            
+            // Limpiar ruta anterior
+            if (this.rutaActual) {
+                this.mapa.removeLayer(this.rutaActual);
+            }
+            
+            // Crear nueva ruta
+            const puntos = data.ruta_puntos.map(p => [p.lat, p.lng]);
+            this.rutaActual = L.polyline(puntos, {
+                color: '#007bff',
+                weight: 4,
+                opacity: 0.8
+            }).addTo(this.mapa);
+            
+            // Ajustar vista para mostrar toda la ruta
+            this.mapa.fitBounds(this.rutaActual.getBounds(), { padding: [20, 20] });
+            
+            // Mostrar información de la ruta
+            const infoRuta = `
+                <div class="alert alert-info mt-3">
+                    <h6><i class="fas fa-route"></i> Ruta hacia ${data.tecnico.nombre}</h6>
+                    <p><strong>Distancia:</strong> ${data.distancia_km} km</p>
+                    <p><strong>Tiempo estimado:</strong> ${data.tiempo_estimado_min} minutos</p>
+                    <p><strong>Teléfono:</strong> ${data.tecnico.telefono}</p>
+                </div>
+            `;
+            
+            // Agregar información temporal
+            const infoDiv = document.createElement('div');
+            infoDiv.innerHTML = infoRuta;
+            infoDiv.style.position = 'absolute';
+            infoDiv.style.top = '10px';
+            infoDiv.style.right = '10px';
+            infoDiv.style.zIndex = '1000';
+            infoDiv.style.maxWidth = '300px';
+            document.querySelector('#mapa').appendChild(infoDiv);
+            
+            // Remover después de 10 segundos
+            setTimeout(() => {
+                if (infoDiv.parentNode) {
+                    infoDiv.parentNode.removeChild(infoDiv);
+                }
+            }, 10000);
+            
+        } catch (error) {
+            console.error('Error obteniendo ruta:', error);
+            alert('Error obteniendo la ruta. Inténtalo de nuevo.');
+        }
+    }
+    
+    actualizarContadorSolicitudes() {
+        document.getElementById('contadorSolicitudes').textContent = this.solicitudesCercanas.length;
+    }
+    
+    actualizarListaSolicitudes() {
+        const lista = document.getElementById('listaSolicitudes');
+        
+        if (this.solicitudesCercanas.length === 0) {
+            lista.innerHTML = `
+                <div class="list-group-item text-center text-muted">
+                    <i class="fas fa-search"></i> No hay solicitudes cercanas
+                </div>
+            `;
+            return;
+        }
+        
+        lista.innerHTML = this.solicitudesCercanas.map(solicitud => {
+            return `
+                <div class="list-group-item list-group-item-action" onclick="mapaMov.verDetallesSolicitud(${solicitud.id})">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <i class="fas fa-${solicitud.tipo_apoyo === 'escalera' ? 'ladder' : 'tools'} text-primary"></i>
+                                ${solicitud.tipo_apoyo.charAt(0).toUpperCase() + solicitud.tipo_apoyo.slice(1)}
+                            </h6>
+                            <p class="mb-1 small">
+                                <strong>${solicitud.tecnico}</strong><br>
+                                <i class="fas fa-map-marker-alt"></i> ${solicitud.distancia_km} km
+                                <i class="fas fa-clock ms-2"></i> ~${solicitud.tiempo_estimado_min} min
+                            </p>
+                            <small class="text-muted">
+                                <i class="fas fa-phone"></i> ${solicitud.telefono}
+                            </small>
+                        </div>
+                        <div>
+                            <span class="badge bg-${solicitud.urgente ? 'danger' : 'warning'}">
+                                ${solicitud.urgente ? 'Urgente' : 'Normal'}
+                            </span>
+                            <br>
+                            <button class="btn btn-sm btn-outline-primary mt-1" onclick="event.stopPropagation(); mapaMov.verRutaHacia(${solicitud.id})">
+                                <i class="fas fa-route"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    actualizarUltimaActualizacion() {
+        const ahora = new Date();
+        document.getElementById('ultimaActualizacion').textContent = 
+            ahora.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    verDetallesSolicitud(solicitudId) {
+        const solicitud = this.solicitudesCercanas.find(s => s.id === solicitudId);
+        if (!solicitud) return;
+        
+        this.solicitudSeleccionada = solicitud;
+        
+        // Obtener tiempo actual en Bogotá
+        const ahoraBogota = new Date().toLocaleString('es-CO', {
+            timeZone: 'America/Bogota',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        
+        // Calcular tiempo transcurrido desde creación
+        const tiempoCreacion = new Date(solicitud.created_at);
+        const tiempoTranscurrido = Math.floor((new Date() - tiempoCreacion) / 60000); // minutos
+        
+        // Determinar urgencia visual
+        const urgenciaClass = solicitud.urgente ? 'text-danger' : 'text-warning';
+        const urgenciaIcon = solicitud.urgente ? 'exclamation-triangle' : 'clock';
+        
+        const content = `
+            <div class="row">
+                <div class="col-12">
+                    <!-- Encabezado con tipo de apoyo -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-${solicitud.tipo_apoyo === 'escalera' ? 'ladder' : 'tools'} text-primary"></i> 
+                            Apoyo de ${solicitud.tipo_apoyo.charAt(0).toUpperCase() + solicitud.tipo_apoyo.slice(1)}
+                        </h5>
+                        <span class="badge bg-${solicitud.urgente ? 'danger' : 'warning'} fs-6">
+                            <i class="fas fa-${urgenciaIcon}"></i> ${solicitud.urgente ? 'Urgente' : 'Normal'}
+                        </span>
+                    </div>
+                    
+                    <!-- Información del técnico -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-user text-primary"></i> Información del Técnico</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2"><strong>Nombre:</strong> ${solicitud.tecnico}</p>
+                            <p class="mb-2">
+                                <strong>Teléfono:</strong> 
+                                <a href="tel:${solicitud.telefono}" class="text-decoration-none">
+                                    <i class="fas fa-phone text-success"></i> ${solicitud.telefono}
+                                </a>
+                            </p>
+                            <p class="mb-0"><strong>Ubicación:</strong> ${solicitud.direccion}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Información de distancia y tiempo -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-route text-primary"></i> Información de Ruta</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <p class="mb-2">
+                                        <i class="fas fa-map-marker-alt text-danger"></i>
+                                        <strong>Distancia:</strong> ${solicitud.distancia_km} km
+                                    </p>
+                                </div>
+                                <div class="col-6">
+                                    <p class="mb-2">
+                                        <i class="fas fa-clock text-info"></i>
+                                        <strong>Tiempo est.:</strong> ${solicitud.tiempo_estimado_min} min
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <button class="btn btn-outline-primary btn-sm" onclick="this.verRutaHacia(${solicitudId}); event.stopPropagation();">
+                                    <i class="fas fa-directions"></i> Ver Ruta
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Observaciones si existen -->
+                    ${solicitud.observaciones ? `
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-comment text-primary"></i> Observaciones</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">${solicitud.observaciones}</p>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    <!-- Información de tiempo -->
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-stopwatch text-primary"></i> Información de Tiempo</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <small class="text-muted">Creada hace</small>
+                                    <div class="fw-bold ${urgenciaClass}">${tiempoTranscurrido} min</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Hora actual (Bogotá)</small>
+                                    <div class="fw-bold text-info">${ahoraBogota.split(' ')[1]}</div>
+                                </div>
+                            </div>
+                            ${solicitud.tiempo_limite ? `
+                            <hr>
+                            <div class="text-center">
+                                <small class="text-muted">Expira el:</small>
+                                <div class="fw-bold text-danger">
+                                    ${new Date(solicitud.tiempo_limite).toLocaleString('es-CO', {timeZone: 'America/Bogota'})}
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('solicitudContent').innerHTML = content;
+        
+        // Configurar botones
+        document.getElementById('btnAceptar').onclick = () => this.aceptarSolicitud(solicitudId);
+        document.getElementById('btnRechazar').onclick = () => this.mostrarModalRechazo(solicitudId);
+        
+        const modal = new bootstrap.Modal(document.getElementById('solicitudModal'));
+        modal.show();
+    }
+    
+    aceptarSolicitud(solicitudId) {
+        if (confirm('¿Estás seguro de que quieres aceptar esta solicitud?')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/movil/solicitud/${solicitudId}/aceptar`;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+    
+    mostrarModalRechazo(solicitudId) {
+        this.solicitudParaRechazar = solicitudId;
+        const modal = new bootstrap.Modal(document.getElementById('rechazoModal'));
+        modal.show();
+    }
+    
+    verRutaHacia(solicitudId) {
+        const solicitud = this.solicitudesCercanas.find(s => s.id === solicitudId);
+        if (!solicitud) return;
+        
+        // Cerrar modal actual
+        const modal = bootstrap.Modal.getInstance(document.getElementById('solicitudModal'));
+        if (modal) modal.hide();
+        
+        // Abrir Google Maps con la ruta
+        const origen = `${this.ubicacionActual.lat},${this.ubicacionActual.lng}`;
+        const destino = `${solicitud.latitud},${solicitud.longitud}`;
+        const url = `https://www.google.com/maps/dir/${origen}/${destino}`;
+        
+        window.open(url, '_blank');
+        
+        // Mostrar notificación
+        this.mostrarNotificacion('Abriendo ruta en Google Maps...', 'info');
+    }
+    
+    async verDetallesServicio(servicioId) {
+        try {
+            const response = await fetch(`/movil/api/servicio/${servicioId}/detalles`);
+            if (!response.ok) {
+                throw new Error('Error al obtener detalles del servicio');
+            }
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.mostrarModalDetallesServicio(data.servicio);
+            } else {
+                this.mostrarNotificacion(data.message || 'Error al cargar detalles', 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            this.mostrarNotificacion('Error de conexión al obtener detalles', 'error');
+        }
+    }
+    
+    mostrarModalDetallesServicio(servicio) {
+        const tiempoTranscurrido = servicio.tiempo_transcurrido;
+        const estadoClass = {
+            'pendiente': 'warning',
+            'aceptado': 'info', 
+            'en_ruta': 'primary',
+            'en_sitio': 'success',
+            'completado': 'success',
+            'cancelado': 'danger'
+        }[servicio.estado] || 'secondary';
+        
+        const content = `
+            <div class="row">
+                <div class="col-12">
+                    <!-- Encabezado del servicio -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="fas fa-${servicio.tipo_apoyo === 'escalera' ? 'ladder' : 'tools'} text-primary"></i> 
+                            Servicio #${servicio.id}
+                        </h5>
+                        <span class="badge bg-${estadoClass} fs-6">
+                            ${servicio.estado.replace('_', ' ').toUpperCase()}
+                        </span>
+                    </div>
+                    
+                    <!-- Información del servicio -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-info-circle text-primary"></i> Información del Servicio</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2"><strong>Tipo de Apoyo:</strong> ${servicio.tipo_apoyo}</p>
+                            <p class="mb-0"><strong>Dirección:</strong> ${servicio.direccion}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Timeline del servicio -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-clock text-primary"></i> Timeline del Servicio</h6>
+                        </div>
+                        <div class="card-body">
+                            ${servicio.timeline.map(evento => `
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="me-3">
+                                        <i class="fas fa-${evento.icono} text-${evento.color}"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold">${evento.titulo}</div>
+                                        <small class="text-muted">${evento.tiempo_bogota}</small>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- Información de tiempo -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-stopwatch text-primary"></i> Tiempo de Servicio</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <small class="text-muted">Tiempo transcurrido</small>
+                                    <div class="fw-bold text-info">${tiempoTranscurrido}</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Hora actual (Bogotá)</small>
+                                    <div class="fw-bold text-success">${servicio.hora_actual_bogota}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Observaciones si existen -->
+                    ${servicio.observaciones ? `
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0"><i class="fas fa-comment text-primary"></i> Observaciones</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0">${servicio.observaciones}</p>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        
+        // Crear modal dinámico para detalles del servicio
+        const modalId = 'servicioDetallesModal';
+        let modal = document.getElementById(modalId);
+        
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.id = modalId;
+            modal.innerHTML = `
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Detalles del Servicio</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body" id="servicioDetallesContent">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        document.getElementById('servicioDetallesContent').innerHTML = content;
+        
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+    }
+    
+    // Configuración de eventos{
+        // Botón actualizar
+        document.getElementById('actualizarMapa').addEventListener('click', () => {
+            this.cargarSolicitudesCercanas();
+        });
+        
+        // Cambios en filtros
+        ['radioBusqueda', 'tipoApoyo', 'tiempoLimite'].forEach(id => {
+            document.getElementById(id).addEventListener('change', () => {
+                this.cargarSolicitudesCercanas();
+            });
+        });
+        
+        // Toggle disponibilidad
+        document.getElementById('disponible').addEventListener('change', (e) => {
+            const estado = e.target.checked ? 'Disponible' : 'No Disponible';
+            const color = e.target.checked ? 'text-success' : 'text-danger';
+            const elemento = document.getElementById('miEstado');
+            elemento.textContent = estado;
+            elemento.className = `fw-bold ${color}`;
+        });
+        
+        // Auto-actualizar
+        document.getElementById('autoActualizar').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                this.iniciarAutoActualizacion();
+            } else {
+                this.detenerAutoActualizacion();
+            }
+        });
+    }
+    
+    iniciarAutoActualizacion() {
+        this.detenerAutoActualizacion();
+        this.autoActualizarInterval = setInterval(() => {
+            this.cargarSolicitudesCercanas();
+        }, 15000); // 15 segundos
+    }
+    
+    detenerAutoActualizacion() {
+        if (this.autoActualizarInterval) {
+            clearInterval(this.autoActualizarInterval);
+            this.autoActualizarInterval = null;
+        }
+    }
+    
+    destruir() {
+        // Limpiar recursos
+        this.detenerAutoActualizacion();
+        if (this.gpsWatchId) {
+            navigator.geolocation.clearWatch(this.gpsWatchId);
+        }
+    }
+}
+
+// Inicializar cuando se carga la página
+let mapaMov;
+document.addEventListener('DOMContentLoaded', function() {
+    mapaMov = new MapaMovilGPS();
+});
+
+// Limpiar recursos al salir
+window.addEventListener('beforeunload', function() {
+    if (mapaMov) {
+        mapaMov.destruir();
+    }
+});
+</script>
+
+        </div>
+    </div>
+    
+    <!-- Sistema de Permisos de Geolocalización (DEBE CARGAR PRIMERO) -->
+    <script src="/static/js/geolocation-permissions.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
+    
+    
+    <script>
+        // Global configuration for production logging
+        window.SYNAPSIS_CONFIG = {
+            DEBUG_MODE: false,
+            ENVIRONMENT: 'production'
+        };
+        
+        // Production-safe console logging
+        window.debugLog = function(...args) {
+            if (window.SYNAPSIS_CONFIG.DEBUG_MODE) {
+                console.log(...args);
+            }
+        };
+        
+        // Auto-hide alerts after 5 seconds
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+        
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    </script>
+</body>
+</html>
